@@ -1,0 +1,87 @@
+/* Doctor Dashboard Styles */
+
+/* Animations for tab switching */
+.transition-all {
+	transition: all 0.3s ease-in-out;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+	border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(135deg, #7e22ce 0%, #db2777 100%);
+}
+
+/* Button hover effects */
+button {
+	cursor: pointer;
+	user-select: none;
+}
+
+button:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.flex-wrap {
+		flex-direction: column;
+	}
+
+	.min-w-\[120px\] {
+		min-width: 100%;
+	}
+}
+
+/* Print styles */
+@media print {
+	header {
+		background: white !important;
+		color: black !important;
+	}
+
+	button {
+		display: none !important;
+	}
+}
+
+/* Loading animation */
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.animate-spin {
+	animation: spin 1s linear infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.transition-all {
+	animation: fadeIn 0.3s ease-in-out;
+}
