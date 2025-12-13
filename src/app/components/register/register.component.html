@@ -1,0 +1,280 @@
+<!-- src/app/components/register/register.component.html -->
+<div class="register-container">
+  <div class="register-card">
+    <!-- Left Side - Illustration -->
+    <div class="register-left">
+      <div class="logo-brand">
+        <div class="logo-icon">
+          <i class="fas fa-plus"></i>
+        </div>
+        <span class="logo-text">PHARMACY</span>
+      </div>
+      <div class="illustration">
+        <img src="assets\image\isometric-medicine-pharmacy-horizontal-banner-vector-43035293.webp" alt="Pharmacy Nurse"
+          class="nurse-image">
+      </div>
+    </div>
+
+    <!-- Right Side - Form -->
+    <div class="register-right">
+      <div class="form-header">
+        <h1>Create Account</h1>
+        <p>Join our healthcare platform</p>
+      </div>
+
+      <!-- Alert Messages -->
+      <div class="alert alert-success" *ngIf="success">
+        <i class="fas fa-check-circle"></i>
+        <span>{{ success }}</span>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="error">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ error }}</span>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" enctype="multipart/form-data">
+
+        <!-- Role Selection Tabs -->
+        <div class="role-tabs">
+          <label class="tab-label" [class.active]="selectedRole === 'customer'">
+            <input type="radio" formControlName="role" value="customer" class="tab-input">
+            <span class="tab-content">
+              <i class="fas fa-user"></i>
+              <span>Customer</span>
+            </span>
+          </label>
+          <label class="tab-label" [class.active]="selectedRole === 'doctor'">
+            <input type="radio" formControlName="role" value="doctor" class="tab-input">
+            <span class="tab-content">
+              <i class="fas fa-stethoscope"></i>
+              <span>Doctor</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Common Fields Section -->
+        <div class="form-section">
+          <div class="section-title">Basic Information</div>
+
+          <!-- Full Name -->
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" id="name" formControlName="name" class="form-input" placeholder="Enter your full name"
+              [class.error]="submitted && f['name'].errors" />
+            <div class="error-message" *ngIf="submitted && f['name'].errors">
+              <span *ngIf="f['name'].errors['required']">Full name is required</span>
+              <span *ngIf="f['name'].errors['minlength']">Name must be at least 3 characters</span>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <input type="email" id="email" formControlName="email" class="form-input" placeholder="your@email.com"
+              [class.error]="submitted && f['email'].errors" />
+            <div class="error-message" *ngIf="submitted && f['email'].errors">
+              <span *ngIf="f['email'].errors['required']">Email is required</span>
+              <span *ngIf="f['email'].errors['email']">Please enter a valid email</span>
+              <span *ngIf="f['email'].errors['serverError']">{{ f['email'].errors['serverError'] }}</span>
+            </div>
+          </div>
+
+          <!-- Phone -->
+          <div class="form-group">
+            <label class="form-label">Phone Number *</label>
+            <input type="tel" id="phone" formControlName="phone" class="form-input" placeholder="01xxxxxxxxx"
+              [class.error]="submitted && f['phone'].errors" (input)="formatPhoneNumber($event)" />
+            <div class="error-message" *ngIf="submitted && f['phone'].errors">
+              <span *ngIf="f['phone'].errors['required']">Phone number is required</span>
+              <span *ngIf="f['phone'].errors['pattern']">Phone number must start with 01</span>
+              <span *ngIf="f['phone'].errors['serverError']">{{ f['phone'].errors['serverError'] }}</span>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label">Password *</label>
+            <div class="password-input-wrapper">
+              <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password"
+                class="form-input" placeholder="Create a strong password"
+                [class.error]="submitted && f['password'].errors" />
+              <button type="button" class="toggle-password" (click)="togglePasswordVisibility()">
+                <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+
+            <!-- Password Strength -->
+            <div class="password-strength" *ngIf="registerForm.get('password')?.value">
+              <div class="strength-info">
+                <span class="strength-label" [style.color]="passwordStrength.color">
+                  {{ passwordStrength.label }}
+                </span>
+              </div>
+              <div class="strength-bar">
+                <div class="strength-fill" [style.width.%]="(passwordStrength.score / 7) * 100"
+                  [style.backgroundColor]="passwordStrength.color"></div>
+              </div>
+              <div class="suggestions" *ngIf="passwordStrength.suggestions.length > 0">
+                <ul>
+                  <li *ngFor="let suggestion of passwordStrength.suggestions">{{ suggestion }}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="error-message" *ngIf="submitted && getPasswordErrorMessage()">
+              <span>{{ getPasswordErrorMessage() }}</span>
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label class="form-label">Confirm Password *</label>
+            <div class="password-input-wrapper">
+              <input [type]="showConfirmPassword ? 'text' : 'password'" id="confirmPassword"
+                formControlName="confirmPassword" class="form-input" placeholder="Re-enter your password"
+                [class.error]="submitted && f['confirmPassword'].errors" />
+              <button type="button" class="toggle-password" (click)="toggleConfirmPasswordVisibility()">
+                <i [class]="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+            <div class="error-message" *ngIf="submitted && f['confirmPassword'].errors">
+              <span *ngIf="f['confirmPassword'].errors['required']">Please confirm your password</span>
+              <span *ngIf="f['confirmPassword'].errors['passwordMismatch']">Passwords do not match</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doctor Section -->
+        <div class="doctor-section" *ngIf="selectedRole === 'doctor'">
+          <div class="section-title">
+            <i class="fas fa-stethoscope"></i>
+            Professional Information
+          </div>
+
+          <!-- Specialty (English) -->
+          <div class="form-group">
+            <label class="form-label">Medical Specialty (English) *</label>
+            <input type="text" id="specialty" formControlName="specialty" class="form-input"
+              placeholder="e.g., Cardiology, Pediatrics" [class.error]="submitted && f['specialty'].errors" />
+            <small class="form-hint">Your medical specialty</small>
+            <div class="error-message" *ngIf="submitted && f['specialty'].errors">
+              <span *ngIf="f['specialty'].errors['required']">Specialty is required</span>
+            </div>
+          </div>
+
+          <!-- Specialty (Arabic) -->
+          <div class="form-group">
+            <label class="form-label">التخصص الطبي (العربية) *</label>
+            <input type="text" id="specialtyArabic" formControlName="specialtyArabic" class="form-input"
+              placeholder="مثال: أمراض القلب، طب الأطفال" [class.error]="submitted && f['specialtyArabic'].errors" />
+            <small class="form-hint">تخصصك الطبي بالعربية</small>
+            <div class="error-message" *ngIf="submitted && f['specialtyArabic'].errors">
+              <span *ngIf="f['specialtyArabic'].errors['required']">التخصص مطلوب</span>
+            </div>
+          </div>
+
+          <!-- License Number -->
+          <div class="form-group">
+            <label class="form-label">Medical License Number *</label>
+            <input type="text" id="licenseNumber" formControlName="licenseNumber" class="form-input"
+              placeholder="Your medical license number" [class.error]="submitted && f['licenseNumber'].errors" />
+            <small class="form-hint">Enter your official medical license number</small>
+            <div class="error-message" *ngIf="submitted && f['licenseNumber'].errors">
+              <span *ngIf="f['licenseNumber'].errors['required']">License number is required</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <!-- Experience -->
+            <div class="form-group">
+              <label class="form-label">Years of Experience *</label>
+              <input type="number" id="experience" formControlName="experience" class="form-input" placeholder="0"
+                [class.error]="submitted && f['experience'].errors" min="0" />
+              <small class="form-hint">Total years of medical practice</small>
+              <div class="error-message" *ngIf="submitted && f['experience'].errors">
+                <span *ngIf="f['experience'].errors['required']">Experience is required</span>
+                <span *ngIf="f['experience'].errors['min']">Must be 0 or more</span>
+              </div>
+            </div>
+
+            <!-- Consultation Fee -->
+            <div class="form-group">
+              <label class="form-label">Consultation Fee (EGP) *</label>
+              <input type="number" id="consultationFee" formControlName="consultationFee" class="form-input"
+                placeholder="0.00" [class.error]="submitted && f['consultationFee'].errors" min="0" step="0.01" />
+              <small class="form-hint">Your consultation fee</small>
+              <div class="error-message" *ngIf="submitted && f['consultationFee'].errors">
+                <span *ngIf="f['consultationFee'].errors['required']">Consultation fee is required</span>
+                <span *ngIf="f['consultationFee'].errors['min']">Must be 0 or more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- License File Upload -->
+          <div class="form-group">
+            <label class="form-label">Medical License Document *</label>
+
+            <div class="file-upload-container">
+              <input type="file" id="licenseFileInput" (change)="onLicenseFileSelected($event)"
+                accept=".pdf,.jpg,.jpeg,.png" style="display: none;" />
+
+              <!-- Upload Area - Show only if no file -->
+              <div class="file-upload-area" (click)="triggerFileInput()" *ngIf="!doctorLicenseFile"
+                [class.has-file]="doctorLicenseFile">
+                <div class="upload-icon">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+
+                <div class="upload-text">
+                  <p class="upload-title">
+                    <strong>Click to upload</strong> or drag and drop
+                  </p>
+                  <p class="upload-subtitle">PDF, JPG, or PNG • Max 5MB</p>
+                </div>
+              </div>
+
+              <!-- File Preview with Options - Show only if file exists -->
+              <div class="file-info" *ngIf="doctorLicenseFile">
+                <div class="file-details">
+                  <i class="fas fa-file-check"></i>
+                  <div>
+                    <strong>{{ doctorLicenseFile.name }}</strong>
+                    <br>
+                    <small style="color: var(--text-gray);">File uploaded successfully</small>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn-change" (click)="triggerFileInput()">
+                    <i class="fas fa-redo"></i>
+                    Change
+                  </button>
+                  <button type="button" class="btn-remove" (click)="removeLicenseFile()" title="Delete file">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="loading">
+            <span class="spinner"></span>
+            Processing...
+          </span>
+          <span *ngIf="!loading">
+            <i class="fas fa-check"></i>
+            Create Account
+          </span>
+        </button>
+
+        <!-- Login Link -->
+        <div class="login-link">
+          <p>Already have an account? <a (click)="goToLogin()" class="link">Sign In</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

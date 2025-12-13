@@ -1,0 +1,66 @@
+<!-- src/app/components/login/login.component.html -->
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h2>تسجيل الدخول</h2>
+      <p>مرحباً بك مرة أخرى! قم بتسجيل الدخول للمتابعة</p>
+    </div>
+
+    <!-- رسالة خطأ -->
+    <div class="alert alert-danger" *ngIf="error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ error }}
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <!-- البريد الإلكتروني -->
+      <div class="form-group">
+        <label for="email">البريد الإلكتروني</label>
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="email" formControlName="email" class="form-control" placeholder="example@email.com"
+            [class.is-invalid]="submitted && f['email'].errors" />
+        </div>
+        <div class="invalid-feedback" *ngIf="submitted && f['email'].errors">
+          <div *ngIf="f['email'].errors['required']">البريد الإلكتروني مطلوب</div>
+          <div *ngIf="f['email'].errors['email']">البريد الإلكتروني غير صالح</div>
+        </div>
+      </div>
+
+      <!-- كلمة المرور -->
+      <div class="form-group">
+        <label for="password">كلمة المرور</label>
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password"
+            class="form-control" placeholder="••••••••" [class.is-invalid]="submitted && f['password'].errors" />
+          <button type="button" class="toggle-password" (click)="togglePasswordVisibility()">
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </button>
+        </div>
+        <div class="invalid-feedback" *ngIf="submitted && f['password'].errors">
+          <div *ngIf="f['password'].errors['required']">كلمة المرور مطلوبة</div>
+          <div *ngIf="f['password'].errors['minlength']">
+            كلمة المرور يجب أن تكون 6 أحرف على الأقل
+          </div>
+        </div>
+      </div>
+
+      <!-- نسيت كلمة المرور -->
+      <div class="forgot-password">
+        <a (click)="goToForgotPassword()">نسيت كلمة المرور؟</a>
+      </div>
+
+      <!-- زر تسجيل الدخول -->
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="loading">
+        <span *ngIf="loading" class="spinner"></span>
+        <span *ngIf="!loading">تسجيل الدخول</span>
+      </button>
+
+      <!-- رابط التسجيل -->
+      <div class="register-link">
+        <p>ليس لديك حساب؟ <a (click)="goToRegister()">سجل الآن</a></p>
+      </div>
+    </form>
+  </div>
+</div>

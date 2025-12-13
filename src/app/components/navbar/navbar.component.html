@@ -1,0 +1,90 @@
+<nav class="main-navbar">
+  <div class="container nav-container">
+
+    <!-- Logo -->
+    <div class="nav-logo" routerLink="/home">
+      <img src="assets/logo.png" alt="pharmacy logo" />
+
+      <div class="logo-text">
+        <h1>PHARMACY</h1>
+        <span>Your Health • Our Care</span>
+      </div>
+    </div>
+
+    <!-- Desktop Menu -->
+    <ul class="nav-links">
+      <li><a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
+      <li><a routerLink="/doctors" routerLinkActive="active">Doctors</a></li>
+      <li><a routerLink="/pharmacy" routerLinkActive="active">Pharmacy</a></li>
+
+      <!-- Search Box -->
+      <li class="nav-search">
+        <input type="text" placeholder="Search…" />
+        <button>
+          <i class="bi bi-search"></i>
+        </button>
+      </li>
+
+      <li>
+        <button class="btn-consultation" routerLink="/doctors">
+          Start Consultation
+        </button>
+      </li>
+
+      <!-- Dashboard Link - يظهر فقط للصيادلة -->
+      <li *ngIf="isLoggedIn && isPharmacist">
+        <button class="btn-dashboard" (click)="goToDashboard()">
+          Dashboard
+        </button>
+      </li>
+
+      <!-- إذا لم يكن مسجل دخول - عرض Login -->
+      <li *ngIf="!isLoggedIn">
+        <a routerLink="/login" routerLinkActive="active">Login</a>
+      </li>
+
+      <!-- إذا كان مسجل دخول - عرض Logout -->
+      <li *ngIf="isLoggedIn">
+        <button class="logout-btn" (click)="logout()">
+          {{ currentUser?.name || currentUser?.email || 'User' }} - Logout
+        </button>
+      </li>
+    </ul>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+      <span [class.active]="mobileMenuOpen"></span>
+      <span [class.active]="mobileMenuOpen"></span>
+      <span [class.active]="mobileMenuOpen"></span>
+    </button>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" [class.active]="mobileMenuOpen">
+    <a routerLink="/home" routerLinkActive="active" (click)="closeMobileMenu()">Home</a>
+    <a routerLink="/doctors" routerLinkActive="active" (click)="closeMobileMenu()">Doctors</a>
+    <a routerLink="/pharmacy" routerLinkActive="active" (click)="closeMobileMenu()">Pharmacy</a>
+
+    <!-- Dashboard Link - يظهر فقط للصيادلة -->
+    <button *ngIf="isLoggedIn && isPharmacist" class="btn-dashboard" (click)="goToDashboard()">
+      Dashboard
+    </button>
+
+    <div class="mobile-search">
+      <input type="text" placeholder="Search…" />
+      <button><i class="bi bi-search"></i></button>
+    </div>
+
+    <button class="btn-consultation" routerLink="/doctors" (click)="closeMobileMenu()">
+      Start Consultation
+    </button>
+
+    <!-- إذا لم يكن مسجل دخول - عرض Login -->
+    <a *ngIf="!isLoggedIn" routerLink="/login" routerLinkActive="active" (click)="closeMobileMenu()">Login</a>
+
+    <!-- إذا كان مسجل دخول - عرض Logout -->
+    <button *ngIf="isLoggedIn" class="logout-btn" (click)="logout()">
+      {{ currentUser?.name || currentUser?.email || 'User' }} - Logout
+    </button>
+  </div>
+</nav>

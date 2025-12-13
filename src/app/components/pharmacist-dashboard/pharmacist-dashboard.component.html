@@ -1,0 +1,290 @@
+<!-- src/app/components/pharmacist-dashpoard/pharmacist-dashpoard.component.html -->
+
+<div class="dashboard-container" dir="ltr">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">💊</span>
+        <div>
+          <h3 class="logo-text">PharmaCare</h3>
+          <p class="logo-subtitle">Dashboard</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a *ngFor="let item of [
+          {id: 'home', label: 'Dashboard', icon: '🏠'},
+          {id: 'orders', label: 'Orders', icon: '📦'},
+          {id: 'prescriptions', label: 'Prescriptions', icon: '💊'},
+          {id: 'inventory', label: 'Inventory', icon: '📊'},
+          {id: 'reports', label: 'Reports', icon: '📈'},
+          {id: 'settings', label: 'Settings', icon: '⚙️'}
+        ]" (click)="setActiveMenu(item.id)" [class.active]="activeMenu === item.id" class="nav-item">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+        <span class="nav-arrow" *ngIf="activeMenu === item.id">→</span>
+      </a>
+    </nav>
+
+    <button class="sidebar-logout" (click)="logout()">
+      <span class="logout-icon">🚪</span>
+      <span>Logout</span>
+    </button>
+  </aside>
+
+  <!-- Loading State -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loader">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div class="dashboard-content" *ngIf="!isLoading && stats">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-left">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Welcome to PharmaCare Management</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-refresh" (click)="refreshDashboard()" [disabled]="isRefreshing" title="Refresh Data">
+          <span class="icon" [class.spinning]="isRefreshing">🔄</span>
+          <span class="btn-text">Refresh</span>
+        </button>
+        <div class="notification-bell">
+          <button class="bell-btn" title="Notifications">
+            <span class="bell-icon">🔔</span>
+            <span class="badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards Grid -->
+    <div class="stats-grid">
+      <!-- Card 1: New Orders -->
+      <div class="stat-card card-primary" (click)="goToOrder('')">
+        <div class="card-header">
+          <span class="card-icon">📦</span>
+          <h3 class="card-title">New Orders</h3>
+        </div>
+        <p class="card-number">{{ stats.orders.new }}</p>
+        <p class="card-subtitle">Pending Confirmation</p>
+      </div>
+
+      <!-- Card 2: Processing Orders -->
+      <div class="stat-card card-warning">
+        <div class="card-header">
+          <span class="card-icon">⚙️</span>
+          <h3 class="card-title">Processing</h3>
+        </div>
+        <p class="card-number">{{ stats.orders.processing }}</p>
+        <p class="card-subtitle">In Preparation</p>
+      </div>
+
+      <!-- Card 3: Today Revenue -->
+      <div class="stat-card card-success">
+        <div class="card-header">
+          <span class="card-icon">💰</span>
+          <h3 class="card-title">Today Revenue</h3>
+        </div>
+        <p class="card-number">{{ formatCurrency(stats.revenue.today) }}</p>
+        <p class="card-subtitle">Total Today</p>
+      </div>
+
+      <!-- Card 4: New Prescriptions -->
+      <div class="stat-card card-info" (click)="goToPrescriptions()">
+        <div class="card-header">
+          <span class="card-icon">💊</span>
+          <h3 class="card-title">New Prescriptions</h3>
+        </div>
+        <p class="card-number">{{ stats.prescriptions.new }}</p>
+        <p class="card-subtitle">Ready to Prepare</p>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Left Column -->
+      <div class="content-left">
+        <!-- Recent Orders Section -->
+        <div class="section-card orders-card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-icon">📋</span>
+              Recent Orders
+            </h2>
+            <span class="order-count">{{ getRecentOrders().length }} orders</span>
+          </div>
+          <div class="orders-list">
+            <div class="order-item" *ngFor="let order of getRecentOrders()" (click)="goToOrder(order.orderNumber)">
+              <div class="order-left">
+                <p class="order-number">{{ order.orderNumber }}</p>
+                <p class="order-time">{{ formatDate(order.createdAt) }}</p>
+                <p class="order-customer" *ngIf="order.customer">
+                  <span class="customer-icon">👤</span>
+                  {{ order.customer.phone }}
+                </p>
+              </div>
+              <div class="order-right">
+                <span [ngClass]="getStatusBadgeClass(order.status)" class="status-badge">
+                  {{ getStatusText(order.status) }}
+                </span>
+                <p class="order-price">{{ formatCurrency(order.pricing.total) }}</p>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="getRecentOrders().length === 0">
+              <p class="empty-text">No orders available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory Alerts Section -->
+        <div class="section-card inventory-card section-warning">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-icon">⚠️</span>
+              Inventory Alerts
+            </h2>
+            <span class="alert-badge">{{ stats.inventory.lowStock }} items</span>
+          </div>
+
+          <!-- Low Stock Products -->
+          <div class="inventory-section">
+            <p class="inventory-subtitle">🔴 Low Stock</p>
+            <div class="products-list">
+              <div class="product-item low-stock" *ngFor="let product of getLowStockProducts()">
+                <div class="product-info">
+                  <div class="product-icon">📦</div>
+                  <div class="product-details">
+                    <p class="product-name">{{ product.name }}</p>
+                    <p class="product-sku">SKU: {{ product.sku }}</p>
+                  </div>
+                </div>
+                <div class="product-stock">
+                  <p class="stock-count">{{ product.stock }} units</p>
+                  <span class="warning-icon" *ngIf="product.stock <= 3">⚠️</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Out of Stock Products -->
+          <div class="inventory-section" *ngIf="getOutOfStockProducts().length > 0">
+            <p class="inventory-subtitle">❌ Out of Stock</p>
+            <div class="products-list">
+              <div class="product-item out-stock" *ngFor="let product of getOutOfStockProducts()">
+                <div class="product-info">
+                  <div class="product-icon">❌</div>
+                  <div class="product-details">
+                    <p class="product-name">{{ product.name }}</p>
+                    <p class="product-sku">{{ product.nameArabic || 'N/A' }}</p>
+                  </div>
+                </div>
+                <button class="btn-update" (click)="updateProductStock(product)" title="Update Stock">
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-primary full-width" (click)="goToInventory()">
+            View Full Inventory Management
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column (Sidebar) -->
+      <div class="content-right">
+        <!-- Quick Actions Card -->
+        <div class="section-card accent-card">
+          <h2 class="section-title accent-title">
+            <span class="section-icon">⚡</span>
+            Quick Actions
+          </h2>
+          <div class="actions-grid">
+            <button class="action-btn" (click)="goToInventory()" title="Prepare New Order">
+              <span class="action-icon">📦</span>
+              <span>New Order</span>
+            </button>
+            <button class="action-btn" (click)="goToPrescriptions()" title="View Prescriptions">
+              <span class="action-icon">📄</span>
+              <span>Prescriptions</span>
+            </button>
+            <button class="action-btn" (click)="goToSettings()" title="Settings">
+              <span class="action-icon">⚙️</span>
+              <span>Settings</span>
+            </button>
+            <button class="action-btn" (click)="generateReport()" title="Generate Reports">
+              <span class="action-icon">📊</span>
+              <span>Reports</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Today Summary Card -->
+        <div class="section-card summary-card">
+          <h2 class="section-title">
+            <span class="section-icon">📊</span>
+            Today Summary
+          </h2>
+          <div class="summary-item">
+            <span class="summary-label">Total Orders</span>
+            <span class="summary-value">{{ stats.orders.today }}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="Math.min(stats.orders.today * 2, 100)"></div>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">New Prescriptions</span>
+            <span class="summary-value highlight-yellow">
+              {{ stats.prescriptions.new }}
+            </span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Revenue</span>
+            <span class="summary-value highlight-green">
+              {{ formatCurrency(stats.revenue.today) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Inventory Status Card -->
+        <div class="section-card status-card">
+          <h2 class="section-title">
+            <span class="section-icon">📦</span>
+            Inventory Status
+          </h2>
+          <div class="status-item">
+            <div class="status-label">Low Stock</div>
+            <div class="status-badge warning">{{ stats.inventory.lowStock }}</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Out of Stock</div>
+            <div class="status-badge danger">{{ stats.inventory.outOfStock }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-state" *ngIf="!isLoading && !stats">
+    <div class="error-content">
+      <p class="error-icon">❌</p>
+      <p class="error-message">Failed to Load Data</p>
+      <p class="error-subtitle">Please try again</p>
+      <button class="btn-primary" (click)="loadDashboardData()">
+        <span class="retry-icon">🔄</span>
+        Retry
+      </button>
+    </div>
+  </div>
+</div>

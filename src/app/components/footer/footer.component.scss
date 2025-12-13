@@ -1,0 +1,108 @@
+/* --- MAIN FOOTER --- */
+.footer-section {
+  background: linear-gradient(90deg, #3a0d66, #5b0fb3);
+  color: #fff;
+  padding: 40px 0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* --- TITLES --- */
+.footer-section h4,
+.footer-section h5 {
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+.footer-section p {
+  color: #d9c5ff;
+  font-size: 14px;
+}
+
+/* --- LINKS --- */
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-section ul li a {
+  color: #fff;
+  text-decoration: none;
+  transition: 0.3s;
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.footer-section ul li a:hover {
+  color: #d8c0ff;
+}
+
+/* --- SOCIAL ICONS --- */
+.social-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.social-icons a {
+  color: #fff;
+  font-size: 20px;
+  transition: 0.3s;
+}
+
+.social-icons a:hover {
+  color: #d8c0ff;
+}
+
+/* --- COPYRIGHT --- */
+.footer-section .text-center p {
+  margin: 0;
+  font-size: 14px;
+  color: #d9c5ff;
+}
+
+/* --- SCROLL TO TOP BUTTON --- */
+.scroll-top {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+}
+
+.scroll-top a {
+  background: #fff;
+  color: #5b0fb3;
+  padding: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  transition: 0.3s;
+}
+
+.scroll-top a:hover {
+  background: #e8d4ff;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 992px) {
+  .footer-section .row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .footer-section .col-md-6 {
+    flex: 0 0 50%; /* اتنين جنب بعض في التابلت */
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 576px) {
+  .footer-section .col-md-6 {
+    flex: 0 0 100%; /* عمود واحد في الموبايل */
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .social-icons {
+    justify-content: center;
+  }
+}

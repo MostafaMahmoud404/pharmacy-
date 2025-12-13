@@ -1,0 +1,409 @@
+<!-- ========================================== -->
+<!-- 📄 File: src/app/components/user-dashboard/user-dashboard.component.html -->
+<!-- ========================================== -->
+
+<div class="dashboard-container" dir="ltr">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">👤</span>
+        <div>
+          <h3 class="logo-text">MediCare</h3>
+          <p class="logo-subtitle">Patient Portal</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a *ngFor="let item of [
+          {id: 'overview', label: 'Overview', icon: '🏠'},
+          {id: 'prescriptions', label: 'Prescriptions', icon: '💊'},
+          {id: 'orders', label: 'Orders', icon: '📦'},
+          {id: 'consultations', label: 'Consultations', icon: '👨‍⚕️'},
+          {id: 'profile', label: 'Profile', icon: '👤'}
+        ]" (click)="setActiveMenu(item.id)" [class.active]="activeMenu === item.id" class="nav-item">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+        <span class="nav-arrow" *ngIf="activeMenu === item.id">→</span>
+      </a>
+    </nav>
+
+    <button class="sidebar-logout" (click)="logout()">
+      <span class="logout-icon">🚪</span>
+      <span>Logout</span>
+    </button>
+  </aside>
+
+  <!-- Loading State -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loader">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading your dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div class="dashboard-content" *ngIf="!isLoading">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-left">
+        <h1 class="page-title">Welcome Back, {{ currentUser?.name || 'Patient' }}!</h1>
+        <p class="page-subtitle">Here's your health overview</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-refresh" (click)="refreshDashboard()" [disabled]="isRefreshing">
+          <span class="icon" [class.spinning]="isRefreshing">🔄</span>
+          <span class="btn-text">Refresh</span>
+        </button>
+        <button class="btn-primary" (click)="bookConsultation()">
+          <span>📅</span>
+          <span>Book Consultation</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards Grid -->
+    <div class="stats-grid">
+      <!-- Active Prescriptions -->
+      <div class="stat-card card-primary">
+        <div class="card-header">
+          <span class="card-icon">💊</span>
+          <h3 class="card-title">Active Prescriptions</h3>
+        </div>
+        <p class="card-number">{{ stats.activePrescriptions }}</p>
+        <p class="card-subtitle">Currently Active</p>
+      </div>
+
+      <!-- Active Orders -->
+      <div class="stat-card card-warning">
+        <div class="card-header">
+          <span class="card-icon">📦</span>
+          <h3 class="card-title">Active Orders</h3>
+        </div>
+        <p class="card-number">{{ stats.activeOrders }}</p>
+        <p class="card-subtitle">In Progress</p>
+      </div>
+
+      <!-- Upcoming Consultations -->
+      <div class="stat-card card-info">
+        <div class="card-header">
+          <span class="card-icon">👨‍⚕️</span>
+          <h3 class="card-title">Consultations</h3>
+        </div>
+        <p class="card-number">{{ stats.upcomingConsultations }}</p>
+        <p class="card-subtitle">Scheduled</p>
+      </div>
+
+      <!-- Total Spent -->
+      <div class="stat-card card-success">
+        <div class="card-header">
+          <span class="card-icon">💰</span>
+          <h3 class="card-title">Total Spent</h3>
+        </div>
+        <p class="card-number">{{ formatCurrency(stats.totalSpent) }}</p>
+        <p class="card-subtitle">This Month</p>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Left Column -->
+      <div class="content-left">
+        <!-- Recent Prescriptions -->
+        <div class="section-card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-icon">💊</span>
+              Recent Prescriptions
+            </h2>
+            <span class="order-count">{{ prescriptions.length }} total</span>
+          </div>
+
+          <div class="prescriptions-list">
+            <div class="prescription-item" *ngFor="let prescription of getRecentPrescriptions()"
+              (click)="viewPrescription(prescription)">
+              <div class="prescription-left">
+                <p class="prescription-number">{{ prescription.prescriptionNumber }}</p>
+                <p class="prescription-doctor">Dr. {{ prescription.doctorName }}</p>
+                <p class="prescription-date">{{ formatDate(prescription.date) }}</p>
+              </div>
+              <div class="prescription-right">
+                <span [ngClass]="getStatusBadgeClass(prescription.status)" class="status-badge">
+                  {{ getStatusText(prescription.status) }}
+                </span>
+                <button class="btn-view" (click)="viewPrescription(prescription); $event.stopPropagation()">
+                  <span>👁️</span>
+                  View
+                </button>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="prescriptions.length === 0">
+              <p class="empty-text">No prescriptions yet</p>
+            </div>
+          </div>
+
+          <button class="btn-primary full-width" (click)="uploadPrescription()">
+            <span>📤</span>
+            Upload Prescription
+          </button>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="section-card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <span class="section-icon">📦</span>
+              Recent Orders
+            </h2>
+            <span class="order-count">{{ orders.length }} total</span>
+          </div>
+
+          <div class="orders-list">
+            <div class="order-item" *ngFor="let order of getRecentOrders()" (click)="viewOrder(order)">
+              <div class="order-left">
+                <p class="order-number">{{ order.orderNumber }}</p>
+                <p class="order-pharmacy">{{ order.pharmacyName }}</p>
+                <p class="order-date">{{ formatDate(order.createdAt) }}</p>
+              </div>
+              <div class="order-right">
+                <span [ngClass]="getStatusBadgeClass(order.status)" class="status-badge">
+                  {{ getStatusText(order.status) }}
+                </span>
+                <p class="order-price">{{ formatCurrency(order.total) }}</p>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="orders.length === 0">
+              <p class="empty-text">No orders yet</p>
+            </div>
+          </div>
+
+          <button class="btn-primary full-width" (click)="browseProducts()">
+            <span>🛍️</span>
+            Browse Pharmacy
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="content-right">
+        <!-- Upcoming Consultations -->
+        <div class="section-card accent-card">
+          <h2 class="section-title accent-title">
+            <span class="section-icon">📅</span>
+            Upcoming Consultations
+          </h2>
+
+          <div class="consultations-list">
+            <div class="consultation-item" *ngFor="let consultation of getUpcomingConsultations()">
+              <div class="consultation-header">
+                <div class="doctor-avatar">👨‍⚕️</div>
+                <div class="consultation-info">
+                  <p class="doctor-name">{{ consultation.doctorName }}</p>
+                  <p class="doctor-specialty">{{ consultation.doctorSpecialty }}</p>
+                </div>
+              </div>
+              <div class="consultation-details">
+                <div class="detail-row">
+                  <span class="detail-icon">📅</span>
+                  <span class="detail-text">{{ formatDate(consultation.date) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-icon">🕐</span>
+                  <span class="detail-text">{{ consultation.time }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-icon">📹</span>
+                  <span class="detail-text">{{ consultation.type }}</span>
+                </div>
+              </div>
+              <button class="btn-join" (click)="joinConsultation(consultation)">
+                <span>▶️</span>
+                Join Now
+              </button>
+            </div>
+
+            <div class="empty-state" *ngIf="getUpcomingConsultations().length === 0">
+              <p class="empty-text">No upcoming consultations</p>
+            </div>
+          </div>
+
+          <button class="btn-primary full-width" (click)="bookConsultation()">
+            <span>➕</span>
+            Book Consultation
+          </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section-card">
+          <h2 class="section-title">
+            <span class="section-icon">⚡</span>
+            Quick Actions
+          </h2>
+          <div class="actions-grid">
+            <button class="action-btn" (click)="uploadPrescription()">
+              <span class="action-icon">📤</span>
+              <span>Upload Prescription</span>
+            </button>
+            <button class="action-btn" (click)="browseProducts()">
+              <span class="action-icon">🛍️</span>
+              <span>Buy Medicine</span>
+            </button>
+            <button class="action-btn" (click)="bookConsultation()">
+              <span class="action-icon">👨‍⚕️</span>
+              <span>Find Doctor</span>
+            </button>
+            <button class="action-btn" (click)="setActiveMenu('orders')">
+              <span class="action-icon">📦</span>
+              <span>Track Orders</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prescription Detail Modal -->
+<div class="modal-overlay" *ngIf="showPrescriptionModal" (click)="closePrescriptionModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Prescription Details</h2>
+      <button class="modal-close" (click)="closePrescriptionModal()">✕</button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedPrescription">
+      <div class="detail-section">
+        <h3 class="detail-title">Information</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Prescription #:</span>
+            <span class="detail-value">{{ selectedPrescription.prescriptionNumber }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Doctor:</span>
+            <span class="detail-value">{{ selectedPrescription.doctorName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">{{ formatDate(selectedPrescription.date) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status:</span>
+            <span [ngClass]="getStatusBadgeClass(selectedPrescription.status)" class="status-badge">
+              {{ getStatusText(selectedPrescription.status) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-title">Medications</h3>
+        <div class="medications-list">
+          <div class="medication-item" *ngFor="let med of selectedPrescription.medications; let i = index">
+            <div class="med-number">{{ i + 1 }}</div>
+            <div class="med-details">
+              <h4 class="med-name">{{ med.name }}</h4>
+              <p class="med-info">
+                <span>💊 {{ med.dosage }}</span> •
+                <span>🕐 {{ med.frequency }}</span> •
+                <span>📅 {{ med.duration }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="downloadPrescription(selectedPrescription!)">
+        <span>📥</span>
+        Download
+      </button>
+      <button class="btn-primary" (click)="sendToPharmacy(selectedPrescription!)">
+        <span>📤</span>
+        Send to Pharmacy
+      </button>
+      <button class="btn-outline" (click)="closePrescriptionModal()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" *ngIf="showOrderModal" (click)="closeOrderModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Order Details</h2>
+      <button class="modal-close" (click)="closeOrderModal()">✕</button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedOrder">
+      <div class="detail-section">
+        <h3 class="detail-title">Order Information</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Order #:</span>
+            <span class="detail-value">{{ selectedOrder.orderNumber }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Pharmacy:</span>
+            <span class="detail-value">{{ selectedOrder.pharmacyName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">{{ formatDate(selectedOrder.createdAt) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status:</span>
+            <span [ngClass]="getStatusBadgeClass(selectedOrder.status)" class="status-badge">
+              {{ getStatusText(selectedOrder.status) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3 class="detail-title">Order Items</h3>
+        <div class="order-items-list">
+          <div class="order-item-row" *ngFor="let item of selectedOrder.items">
+            <div class="item-info">
+              <p class="item-name">{{ item.productName }}</p>
+              <p class="item-qty">Qty: {{ item.quantity }} × {{ formatCurrency(item.price) }}</p>
+            </div>
+            <p class="item-total">{{ formatCurrency(item.quantity * item.price) }}</p>
+          </div>
+        </div>
+        <div class="order-total">
+          <span class="total-label">Total:</span>
+          <span class="total-value">{{ formatCurrency(selectedOrder.total) }}</span>
+        </div>
+      </div>
+
+      <div class="detail-section" *ngIf="selectedOrder.estimatedDelivery">
+        <div class="delivery-info">
+          <span class="delivery-icon">🚚</span>
+          <span class="delivery-text">Estimated Delivery: {{ selectedOrder.estimatedDelivery }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="trackOrder(selectedOrder!)">
+        <span>📍</span>
+        Track Order
+      </button>
+      <button class="btn-danger" *ngIf="selectedOrder!.status !== 'delivered' && selectedOrder!.status !== 'cancelled'"
+        (click)="cancelOrder(selectedOrder!)">
+        <span>✕</span>
+        Cancel Order
+      </button>
+      <button class="btn-outline" (click)="closeOrderModal()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
