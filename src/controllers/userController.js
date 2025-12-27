@@ -15,9 +15,8 @@ const {
   getFileUrl,
 } = require("../middleware/upload");
 
-// @desc    Get all users (Admin only)
-// @route   GET /api/users
-// @access  Private/Admin
+
+
 const getUsers = asyncHandler(async (req, res, next) => {
   const features = new APIFeatures(User.find(), req.query)
     .search(["name", "email", "phone"])
@@ -40,9 +39,7 @@ const getUsers = asyncHandler(async (req, res, next) => {
   );
 });
 
-// @desc    Get single user by ID
-// @route   GET /api/users/:id
-// @access  Private/Admin
+
 const getUserById = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id).populate({
     path: "doctorProfile",
@@ -54,7 +51,6 @@ const getUserById = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المستخدم غير موجود", 404));
   }
 
-  // الحصول على إحصائيات المستخدم
   let stats = {};
 
   if (user.role === "customer") {
@@ -69,30 +65,28 @@ const getUserById = asyncHandler(async (req, res, next) => {
     };
   }
 
-  if (user.role === "doctor") {
-    const consultationsCount = await Consultation.countDocuments({
-      doctor: user._id,
-    });
-    const completedConsultations = await Consultation.countDocuments({
-      doctor: user._id,
-      status: "completed",
-    });
-
-    stats = {
-      totalConsultations: consultationsCount,
-      completedConsultations,
-    };
-  }
-
-  successResponse(res, 200, "تم الحصول على المستخدم بنجاح", {
-    user,
-    stats,
+if (user.role === "doctor") {
+  const consultationsCount = await Consultation.countDocuments({
+    doctor: user._id,
   });
+  const completedConsultations = await Consultation.countDocuments({
+    doctor: user._id,
+    status: "completed",
+  });
+
+  stats = {
+    totalConsultations: consultationsCount,
+    completedConsultations,
+  };
+}
+
+successResponse(res, 200, "تم الحصول على المستخدم بنجاح", {
+  user,
+  stats,
+});
 });
 
-// @desc    Update user
-// @route   PUT /api/users/:id
-// @access  Private/Admin
+
 const updateUser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, role, isActive } = req.body;
 
@@ -102,7 +96,6 @@ const updateUser = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المستخدم غير موجود", 404));
   }
 
-  // التحقق من البريد الإلكتروني
   if (email && email !== user.email) {
     const emailExists = await User.findOne({ email, _id: { $ne: user._id } });
     if (emailExists) {
@@ -111,7 +104,6 @@ const updateUser = asyncHandler(async (req, res, next) => {
     user.email = email;
   }
 
-  // التحقق من رقم الهاتف
   if (phone && phone !== user.phone) {
     const phoneExists = await User.findOne({ phone, _id: { $ne: user._id } });
     if (phoneExists) {
@@ -129,9 +121,7 @@ const updateUser = asyncHandler(async (req, res, next) => {
   successResponse(res, 200, "تم تحديث المستخدم بنجاح", { user });
 });
 
-// @desc    Delete user
-// @route   DELETE /api/users/:id
-// @access  Private/Admin
+
 const deleteUser = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
 
@@ -139,12 +129,10 @@ const deleteUser = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المستخدم غير موجود", 404));
   }
 
-  // لا يمكن حذف حساب Admin
   if (user.role === "admin") {
     return next(new ErrorResponse("لا يمكن حذف حساب المدير", 403));
   }
 
-  // حذف ملف الدكتور إذا كان موجود
   if (user.role === "doctor") {
     await Doctor.findOneAndDelete({ user: user._id });
   }
@@ -154,9 +142,7 @@ const deleteUser = asyncHandler(async (req, res, next) => {
   successResponse(res, 200, "تم حذف المستخدم بنجاح");
 });
 
-// @desc    Upload profile image
-// @route   PUT /api/users/profile/image
-// @access  Private
+
 const uploadProfileImage = asyncHandler(async (req, res, next) => {
   if (!req.file) {
     return next(new ErrorResponse("يرجى اختيار صورة", 400));
@@ -164,32 +150,30 @@ const uploadProfileImage = asyncHandler(async (req, res, next) => {
 
   const user = await User.findById(req.user._id);
 
-  // حذف الصورة القديمة
+  // حذف الصورة القديمة إذا كانت موجودة
   if (user.profileImage && user.profileImage !== "default-avatar.png") {
-    deleteFile(`uploads/profiles/${user.profileImage}`);
+    const fs = require("fs");
+    const oldImagePath = user.profileImage;
+    if (fs.existsSync(oldImagePath)) {
+      fs.unlinkSync(oldImagePath);
+    }
   }
 
-  // تحديث الصورة الجديدة
-  user.profileImage = req.file.filename;
+  // حفظ مسار الصورة الجديدة
+  user.profileImage = req.file.path;
   await user.save();
-
-  const imageUrl = getFileUrl(req, `uploads/profiles/${req.file.filename}`);
 
   successResponse(res, 200, "تم رفع الصورة بنجاح", {
     profileImage: user.profileImage,
-    imageUrl,
   });
 });
 
-// @desc    Add address
-// @route   POST /api/users/addresses
-// @access  Private
+
 const addAddress = asyncHandler(async (req, res, next) => {
   const { label, street, city, state, zipCode, isDefault } = req.body;
 
   const user = await User.findById(req.user._id);
 
-  // إذا كان العنوان الافتراضي، نلغي باقي العناوين الافتراضية
   if (isDefault) {
     user.addresses.forEach((addr) => {
       addr.isDefault = false;
@@ -202,7 +186,7 @@ const addAddress = asyncHandler(async (req, res, next) => {
     city,
     state,
     zipCode,
-    isDefault: isDefault || user.addresses.length === 0, // أول عنوان يكون افتراضي
+    isDefault: isDefault || user.addresses.length === 0,
   });
 
   await user.save();
@@ -212,9 +196,8 @@ const addAddress = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Update address
-// @route   PUT /api/users/addresses/:addressId
-// @access  Private
+
+
 const updateAddress = asyncHandler(async (req, res, next) => {
   const { addressId } = req.params;
   const { label, street, city, state, zipCode, isDefault } = req.body;
@@ -226,14 +209,14 @@ const updateAddress = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("العنوان غير موجود", 404));
   }
 
-  // تحديث البيانات
+
   if (label) address.label = label;
   if (street) address.street = street;
   if (city) address.city = city;
   if (state) address.state = state;
   if (zipCode) address.zipCode = zipCode;
 
-  // إذا كان العنوان الافتراضي، نلغي باقي العناوين الافتراضية
+
   if (isDefault) {
     user.addresses.forEach((addr) => {
       addr.isDefault = addr._id.toString() === addressId;
@@ -247,9 +230,8 @@ const updateAddress = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Delete address
-// @route   DELETE /api/users/addresses/:addressId
-// @access  Private
+
+
 const deleteAddress = asyncHandler(async (req, res, next) => {
   const { addressId } = req.params;
 
@@ -260,14 +242,14 @@ const deleteAddress = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("العنوان غير موجود", 404));
   }
 
-  // إذا كان العنوان الوحيد
+
   if (user.addresses.length === 1) {
     return next(
       new ErrorResponse("يجب أن يكون لديك عنوان واحد على الأقل", 400)
     );
   }
 
-  // إذا كان العنوان افتراضي، نجعل أول عنوان افتراضي
+
   const wasDefault = address.isDefault;
   address.deleteOne();
 
@@ -282,9 +264,8 @@ const deleteAddress = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get user statistics
-// @route   GET /api/users/stats
-// @access  Private/Admin
+
+
 const getUserStats = asyncHandler(async (req, res, next) => {
   const totalUsers = await User.countDocuments();
   const customerCount = await User.countDocuments({ role: "customer" });
@@ -295,14 +276,14 @@ const getUserStats = asyncHandler(async (req, res, next) => {
   const activeUsers = await User.countDocuments({ isActive: true });
   const verifiedEmails = await User.countDocuments({ isEmailVerified: true });
 
-  // إحصائيات الأطباء
+
   const verifiedDoctors = await Doctor.countDocuments({ isVerified: true });
   const availableDoctors = await Doctor.countDocuments({
     isAvailable: true,
     isVerified: true,
   });
 
-  // المستخدمون الجدد (آخر 30 يوم)
+
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const newUsers = await User.countDocuments({
     createdAt: { $gte: thirtyDaysAgo },
@@ -329,9 +310,8 @@ const getUserStats = asyncHandler(async (req, res, next) => {
   successResponse(res, 200, "تم الحصول على الإحصائيات بنجاح", { stats });
 });
 
-// @desc    Search users
-// @route   GET /api/users/search
-// @access  Private/Admin
+
+
 const searchUsers = asyncHandler(async (req, res, next) => {
   const { q, role } = req.query;
 
@@ -358,9 +338,8 @@ const searchUsers = asyncHandler(async (req, res, next) => {
   successResponse(res, 200, "نتائج البحث", { users, count: users.length });
 });
 
-// @desc    Get user activity
-// @route   GET /api/users/:id/activity
-// @access  Private/Admin
+
+
 const getUserActivity = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id);
 
@@ -371,14 +350,14 @@ const getUserActivity = asyncHandler(async (req, res, next) => {
   let activity = {};
 
   if (user.role === "customer") {
-    // آخر الطلبات
+
     const recentOrders = await Order.find({ customer: user._id })
       .sort("-createdAt")
       .limit(5)
       .select("orderNumber status pricing.total createdAt");
 
-    // آخر الاستشارات
-    const recentConsultations = await Consultation.find({ patient: user._id })
+
+      const recentConsultations = await Consultation.find({ patient: user._id })
       .sort("-createdAt")
       .limit(5)
       .populate("doctor", "user")
@@ -393,7 +372,7 @@ const getUserActivity = asyncHandler(async (req, res, next) => {
   if (user.role === "doctor") {
     const doctorProfile = await Doctor.findOne({ user: user._id });
 
-    // آخر الاستشارات
+
     const recentConsultations = await Consultation.find({
       doctor: doctorProfile._id,
     })

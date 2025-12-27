@@ -1,10 +1,11 @@
+// ✅ dashboardController.js - FIXED
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Consultation = require("../models/Consultation");
 const Prescription = require("../models/Prescription");
-const { asyncHandler, successResponse } = require("../middleware/errorHandler");
+const { asyncHandler, successResponse, ErrorResponse } = require("../middleware/errorHandler"); // ✅ ADDED ErrorResponse
 const { startOfDay, endOfDay, addDays } = require("../utils/helpers");
 const Review = require("../models/Review");
 
@@ -194,21 +195,31 @@ const getAdminDashboard = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Get Doctor Dashboard Statistics
-// @route   GET /api/dashboard/doctor
+// @route   GET /api/doctors/dashboard (UPDATED COMMENT)
 // @access  Private/Doctor
 const getDoctorDashboard = asyncHandler(async (req, res, next) => {
+  // ✅ FIXED: Better error handling
+  console.log("getDoctorDashboard called for user:", req.user?._id);
+  
   const doctor = await Doctor.findOne({ user: req.user._id });
 
   if (!doctor) {
-    return next(new ErrorResponse("ملف الطبيب غير موجود", 404));
+    console.error("Doctor not found for user:", req.user._id);
+    // ✅ FIXED: Return proper error response
+    return res.status(404).json({
+      success: false,
+      message: "Doctor profile not found"
+    });
   }
+
+  console.log("Doctor found:", doctor._id);
 
   const today = new Date();
   const startOfToday = startOfDay(today);
   const endOfToday = endOfDay(today);
 
   // إحصائيات عامة
-  const totalConsultations = doctor.totalConsultations;
+  const totalConsultations = doctor.totalConsultations || 0;
   const completedConsultations = await Consultation.countDocuments({
     doctor: doctor._id,
     status: "completed",
@@ -279,7 +290,7 @@ const getDoctorDashboard = asyncHandler(async (req, res, next) => {
     overview: {
       totalConsultations,
       completedConsultations,
-      rating: doctor.rating,
+      rating: doctor.rating || { average: 0, count: 0 },
       totalRevenue: totalRevenue[0]?.total || 0,
     },
     today: {
@@ -291,7 +302,9 @@ const getDoctorDashboard = asyncHandler(async (req, res, next) => {
     recentReviews,
   };
 
-  successResponse(res, 200, "إحصائيات لوحة التحكم", { stats });
+  console.log("Sending dashboard stats:", JSON.stringify(stats, null, 2));
+
+  successResponse(res, 200, "Dashboard statistics", { stats });
 });
 
 // @desc    Get Pharmacist Dashboard Statistics

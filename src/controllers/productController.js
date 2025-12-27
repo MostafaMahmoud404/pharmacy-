@@ -8,95 +8,189 @@ const {
 } = require("../middleware/errorHandler");
 const { deleteFile } = require("../middleware/upload");
 
+// ✅ Helper: Parse array fields correctly
+const parseArrayField = (fieldData) => {
+  if (!fieldData) return [];
+  if (Array.isArray(fieldData)) {
+    return fieldData.filter((item) => item && item.trim() !== "");
+  }
+  if (typeof fieldData === "string") {
+    const trimmed = fieldData.trim();
+    if (!trimmed || trimmed === "[]") return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => item && item.trim() !== "");
+      }
+      return [trimmed];
+    } catch {
+      return [trimmed];
+    }
+  }
+  return [];
+};
+
+// ✅ Helper: Parse boolean fields
+const parseBoolean = (value) => {
+  if (value === undefined || value === null) return undefined;
+  return value === "true" || value === true;
+};
+
+// ✅ Helper: Validate required fields
+const validateProductData = (data) => {
+  const errors = [];
+
+  if (!data.name?.trim()) errors.push("اسم المنتج مطلوب");
+  if (!data.sku?.trim()) errors.push("رمز المنتج (SKU) مطلوب");
+  if (!data.category?.trim()) errors.push("التصنيف مطلوب");
+
+  if (data.price !== undefined && (isNaN(data.price) || data.price < 0)) {
+    errors.push("السعر يجب أن يكون رقم موجب");
+  }
+
+  if (data.stock !== undefined && (isNaN(data.stock) || data.stock < 0)) {
+    errors.push("الكمية يجب أن تكون رقم موجب");
+  }
+
+  return errors;
+};
+
 // @desc    Create product
 // @route   POST /api/products
 // @access  Private/Admin/Pharmacist
 const createProduct = asyncHandler(async (req, res, next) => {
-  const {
-    name,
-    nameArabic,
-    description,
-    scientificName,
-    category,
-    categoryArabic,
-    subCategory,
-    price,
-    discountPrice,
-    stock,
-    manufacturer,
-    requiresPrescription,
-    dosageForm,
-    strength,
-    packSize,
-    activeIngredients,
-    usageInstructions,
-    sideEffects,
-    contraindications,
-    warnings,
-    storageConditions,
-    expiryDate,
-    barcode,
-    sku,
-    tags,
-  } = req.body;
+  try {
+    console.log("📦 Creating product...");
 
-  // التحقق من SKU
-  const skuExists = await Product.findOne({ sku });
-  if (skuExists) {
-    return next(new ErrorResponse("رمز المنتج (SKU) مستخدم بالفعل", 400));
-  }
+    const {
+      name,
+      nameArabic,
+      description,
+      scientificName,
+      category,
+      categoryArabic,
+      subCategory,
+      price,
+      discountPrice,
+      stock,
+      manufacturer,
+      requiresPrescription,
+      dosageForm,
+      strength,
+      packSize,
+      usageInstructions,
+      storageConditions,
+      expiryDate,
+      barcode,
+      sku,
+      isActive,
+      isFeatured,
+    } = req.body;
 
-  // التحقق من Barcode
-  if (barcode) {
-    const barcodeExists = await Product.findOne({ barcode });
-    if (barcodeExists) {
-      return next(new ErrorResponse("الباركود مستخدم بالفعل", 400));
+    // Parse arrays
+    const activeIngredients = parseArrayField(
+      req.body["activeIngredients[]"] || req.body.activeIngredients
+    );
+    const sideEffects = parseArrayField(
+      req.body["sideEffects[]"] || req.body.sideEffects
+    );
+    const contraindications = parseArrayField(
+      req.body["contraindications[]"] || req.body.contraindications
+    );
+    const warnings = parseArrayField(
+      req.body["warnings[]"] || req.body.warnings
+    );
+    const tags = parseArrayField(req.body["tags[]"] || req.body.tags);
+
+    // Validate
+    const errors = validateProductData({ name, sku, category, price, stock });
+    if (errors.length > 0) {
+      return next(new ErrorResponse(errors.join(", "), 400));
     }
+
+    // Check SKU
+    const skuExists = await Product.findOne({ sku: sku.trim() });
+    if (skuExists) {
+      return next(new ErrorResponse("رمز المنتج (SKU) مستخدم بالفعل", 400));
+    }
+
+    // Check Barcode
+    if (barcode) {
+      const barcodeExists = await Product.findOne({ barcode: barcode.trim() });
+      if (barcodeExists) {
+        return next(new ErrorResponse("الباركود مستخدم بالفعل", 400));
+      }
+    }
+
+    // Process images
+    let images = [];
+    if (req.files?.length > 0) {
+      images = req.files.map((file, index) => ({
+        url: file.path,
+        publicId: file.filename,
+        isMain: index === 0,
+      }));
+    }
+
+    // Create product
+    const productData = {
+      name: name.trim(),
+      nameArabic: nameArabic?.trim(),
+      description: description?.trim(),
+      scientificName: scientificName?.trim(),
+      category: category.trim(),
+      categoryArabic: categoryArabic?.trim(),
+      subCategory: subCategory?.trim(),
+      price: parseFloat(price) || 0,
+      stock: parseInt(stock) || 0,
+      images,
+      manufacturer: manufacturer?.trim(),
+      requiresPrescription: parseBoolean(requiresPrescription) || false,
+      dosageForm: dosageForm?.trim(),
+      strength: strength?.trim(),
+      packSize: packSize?.trim(),
+      usageInstructions: usageInstructions?.trim(),
+      storageConditions: storageConditions?.trim(),
+      barcode: barcode?.trim(),
+      sku: sku.trim(),
+      isActive: parseBoolean(isActive) ?? true,
+      isFeatured: parseBoolean(isFeatured) || false,
+      metadata: {
+        createdBy: req.user._id,
+      },
+    };
+
+    // Add optional fields only if they have values
+    if (discountPrice) productData.discountPrice = parseFloat(discountPrice);
+    if (expiryDate) productData.expiryDate = expiryDate;
+    if (activeIngredients.length > 0)
+      productData.activeIngredients = activeIngredients;
+    if (sideEffects.length > 0) productData.sideEffects = sideEffects;
+    if (contraindications.length > 0)
+      productData.contraindications = contraindications;
+    if (warnings.length > 0) productData.warnings = warnings;
+    if (tags.length > 0) productData.tags = tags;
+
+    const product = await Product.create(productData);
+
+    console.log("✅ Product created:", product._id);
+
+    successResponse(res, 201, "تم إضافة المنتج بنجاح", { product });
+  } catch (error) {
+    console.error("❌ Create product error:", error);
+
+    // Delete uploaded files if product creation failed
+    if (req.files?.length > 0) {
+      req.files.forEach((file) => deleteFile(file.path));
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return next(new ErrorResponse(messages.join(", "), 400));
+    }
+
+    return next(new ErrorResponse(error.message || "فشل إنشاء المنتج", 500));
   }
-
-  // معالجة الصور المرفوعة
-  let images = [];
-  if (req.files && req.files.length > 0) {
-    images = req.files.map((file, index) => ({
-      url: file.path,
-      publicId: file.filename,
-      isMain: index === 0,
-    }));
-  }
-
-  const product = await Product.create({
-    name,
-    nameArabic,
-    description,
-    scientificName,
-    category,
-    categoryArabic,
-    subCategory,
-    price,
-    discountPrice,
-    stock,
-    images,
-    manufacturer,
-    requiresPrescription,
-    dosageForm,
-    strength,
-    packSize,
-    activeIngredients,
-    usageInstructions,
-    sideEffects,
-    contraindications,
-    warnings,
-    storageConditions,
-    expiryDate,
-    barcode,
-    sku,
-    tags,
-    metadata: {
-      createdBy: req.user._id,
-    },
-  });
-
-  successResponse(res, 201, "تم إضافة المنتج بنجاح", { product });
 });
 
 // @desc    Get all products
@@ -137,10 +231,8 @@ const getProductById = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المنتج غير موجود", 404));
   }
 
-  // زيادة عدد المشاهدات
   await product.incrementViews();
 
-  // الحصول على المنتجات المشابهة
   const relatedProducts = await Product.find({
     category: product.category,
     _id: { $ne: product._id },
@@ -159,91 +251,126 @@ const getProductById = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/products/:id
 // @access  Private/Admin/Pharmacist
 const updateProduct = asyncHandler(async (req, res, next) => {
-  let product = await Product.findById(req.params.id);
+  try {
+    let product = await Product.findById(req.params.id);
 
-  if (!product) {
-    return next(new ErrorResponse("المنتج غير موجود", 404));
-  }
-
-  const {
-    name,
-    nameArabic,
-    description,
-    scientificName,
-    category,
-    categoryArabic,
-    subCategory,
-    price,
-    discountPrice,
-    stock,
-    manufacturer,
-    requiresPrescription,
-    dosageForm,
-    strength,
-    packSize,
-    activeIngredients,
-    usageInstructions,
-    sideEffects,
-    contraindications,
-    warnings,
-    storageConditions,
-    expiryDate,
-    barcode,
-    tags,
-    isActive,
-    isFeatured,
-  } = req.body;
-
-  // التحقق من Barcode
-  if (barcode && barcode !== product.barcode) {
-    const barcodeExists = await Product.findOne({
-      barcode,
-      _id: { $ne: product._id },
-    });
-    if (barcodeExists) {
-      return next(new ErrorResponse("الباركود مستخدم بالفعل", 400));
+    if (!product) {
+      return next(new ErrorResponse("المنتج غير موجود", 404));
     }
+
+    console.log("📝 Updating product:", product._id);
+
+    const {
+      name,
+      nameArabic,
+      description,
+      scientificName,
+      category,
+      categoryArabic,
+      subCategory,
+      price,
+      discountPrice,
+      stock,
+      manufacturer,
+      requiresPrescription,
+      dosageForm,
+      strength,
+      packSize,
+      usageInstructions,
+      storageConditions,
+      expiryDate,
+      barcode,
+      isActive,
+      isFeatured,
+    } = req.body;
+
+    // Parse arrays
+    const activeIngredients = parseArrayField(
+      req.body["activeIngredients[]"] || req.body.activeIngredients
+    );
+    const sideEffects = parseArrayField(
+      req.body["sideEffects[]"] || req.body.sideEffects
+    );
+    const contraindications = parseArrayField(
+      req.body["contraindications[]"] || req.body.contraindications
+    );
+    const warnings = parseArrayField(
+      req.body["warnings[]"] || req.body.warnings
+    );
+    const tags = parseArrayField(req.body["tags[]"] || req.body.tags);
+
+    // Check Barcode
+    if (barcode && barcode !== product.barcode) {
+      const barcodeExists = await Product.findOne({
+        barcode: barcode.trim(),
+        _id: { $ne: product._id },
+      });
+      if (barcodeExists) {
+        return next(new ErrorResponse("الباركود مستخدم بالفعل", 400));
+      }
+    }
+
+    // Update fields
+    if (name) product.name = name.trim();
+    if (nameArabic) product.nameArabic = nameArabic.trim();
+    if (description !== undefined) product.description = description?.trim();
+    if (scientificName) product.scientificName = scientificName.trim();
+    if (category) product.category = category.trim();
+    if (categoryArabic) product.categoryArabic = categoryArabic.trim();
+    if (subCategory) product.subCategory = subCategory.trim();
+    if (price !== undefined) product.price = parseFloat(price);
+    if (discountPrice !== undefined) {
+      product.discountPrice = discountPrice
+        ? parseFloat(discountPrice)
+        : undefined;
+    }
+    if (stock !== undefined) product.stock = parseInt(stock);
+    if (manufacturer) product.manufacturer = manufacturer.trim();
+    if (requiresPrescription !== undefined) {
+      product.requiresPrescription = parseBoolean(requiresPrescription);
+    }
+    if (dosageForm) product.dosageForm = dosageForm.trim();
+    if (strength) product.strength = strength.trim();
+    if (packSize) product.packSize = packSize.trim();
+    if (usageInstructions) product.usageInstructions = usageInstructions.trim();
+    if (storageConditions) product.storageConditions = storageConditions.trim();
+    if (expiryDate) product.expiryDate = expiryDate;
+    if (barcode) product.barcode = barcode.trim();
+    if (isActive !== undefined) product.isActive = parseBoolean(isActive);
+    if (isFeatured !== undefined) product.isFeatured = parseBoolean(isFeatured);
+
+    // Update arrays
+    if (activeIngredients.length > 0)
+      product.activeIngredients = activeIngredients;
+    if (sideEffects.length > 0) product.sideEffects = sideEffects;
+    if (contraindications.length > 0)
+      product.contraindications = contraindications;
+    if (warnings.length > 0) product.warnings = warnings;
+    if (tags.length > 0) product.tags = tags;
+
+    product.metadata.lastUpdatedBy = req.user._id;
+
+    await product.save();
+
+    console.log("✅ Product updated:", product._id);
+
+    successResponse(res, 200, "تم تحديث المنتج بنجاح", { product });
+  } catch (error) {
+    console.error("❌ Update product error:", error);
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((e) => e.message);
+      return next(new ErrorResponse(messages.join(", "), 400));
+    }
+
+    return next(new ErrorResponse(error.message || "فشل تحديث المنتج", 500));
   }
-
-  // تحديث الحقول
-  if (name) product.name = name;
-  if (nameArabic) product.nameArabic = nameArabic;
-  if (description) product.description = description;
-  if (scientificName) product.scientificName = scientificName;
-  if (category) product.category = category;
-  if (categoryArabic) product.categoryArabic = categoryArabic;
-  if (subCategory) product.subCategory = subCategory;
-  if (price !== undefined) product.price = price;
-  if (discountPrice !== undefined) product.discountPrice = discountPrice;
-  if (stock !== undefined) product.stock = stock;
-  if (manufacturer) product.manufacturer = manufacturer;
-  if (requiresPrescription !== undefined)
-    product.requiresPrescription = requiresPrescription;
-  if (dosageForm) product.dosageForm = dosageForm;
-  if (strength) product.strength = strength;
-  if (packSize) product.packSize = packSize;
-  if (activeIngredients) product.activeIngredients = activeIngredients;
-  if (usageInstructions) product.usageInstructions = usageInstructions;
-  if (sideEffects) product.sideEffects = sideEffects;
-  if (contraindications) product.contraindications = contraindications;
-  if (warnings) product.warnings = warnings;
-  if (storageConditions) product.storageConditions = storageConditions;
-  if (expiryDate) product.expiryDate = expiryDate;
-  if (barcode) product.barcode = barcode;
-  if (tags) product.tags = tags;
-  if (isActive !== undefined) product.isActive = isActive;
-  if (isFeatured !== undefined) product.isFeatured = isFeatured;
-
-  product.metadata.lastUpdatedBy = req.user._id;
-
-  await product.save();
-
-  successResponse(res, 200, "تم تحديث المنتج بنجاح", { product });
 });
 
 // @desc    Delete product
 // @route   DELETE /api/products/:id
-// @access  Private/Admin
+// @access Private/Admin/Pharmacist
+
 const deleteProduct = asyncHandler(async (req, res, next) => {
   const product = await Product.findById(req.params.id);
 
@@ -251,11 +378,8 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المنتج غير موجود", 404));
   }
 
-  // حذف الصور
-  if (product.images && product.images.length > 0) {
-    product.images.forEach((image) => {
-      deleteFile(image.url);
-    });
+  if (product.images?.length > 0) {
+    product.images.forEach((image) => deleteFile(image.url));
   }
 
   await product.deleteOne();
@@ -267,7 +391,7 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
 // @route   POST /api/products/:id/images
 // @access  Private/Admin/Pharmacist
 const uploadProductImages = asyncHandler(async (req, res, next) => {
-  if (!req.files || req.files.length === 0) {
+  if (!req.files?.length) {
     return next(new ErrorResponse("يرجى اختيار صور", 400));
   }
 
@@ -277,7 +401,6 @@ const uploadProductImages = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المنتج غير موجود", 404));
   }
 
-  // إضافة الصور الجديدة
   req.files.forEach((file, index) => {
     product.images.push({
       url: file.path,
@@ -288,9 +411,7 @@ const uploadProductImages = asyncHandler(async (req, res, next) => {
 
   await product.save();
 
-  successResponse(res, 200, "تم رفع الصور بنجاح", {
-    images: product.images,
-  });
+  successResponse(res, 200, "تم رفع الصور بنجاح", { images: product.images });
 });
 
 // @desc    Delete product image
@@ -311,22 +432,16 @@ const deleteProductImage = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("الصورة غير موجودة", 404));
   }
 
-  // حذف الملف
   deleteFile(image.url);
-
-  // حذف من المصفوفة
   image.deleteOne();
 
-  // إذا كانت الصورة الرئيسية، نجعل أول صورة رئيسية
   if (image.isMain && product.images.length > 0) {
     product.images[0].isMain = true;
   }
 
   await product.save();
 
-  successResponse(res, 200, "تم حذف الصورة بنجاح", {
-    images: product.images,
-  });
+  successResponse(res, 200, "تم حذف الصورة بنجاح", { images: product.images });
 });
 
 // @desc    Set main product image
@@ -341,7 +456,6 @@ const setMainImage = asyncHandler(async (req, res, next) => {
     return next(new ErrorResponse("المنتج غير موجود", 404));
   }
 
-  // إلغاء الصورة الرئيسية الحالية
   product.images.forEach((img) => {
     img.isMain = img._id.toString() === imageId;
   });
@@ -371,9 +485,7 @@ const updateStock = asyncHandler(async (req, res, next) => {
 
   await product.updateStock(quantity, operation);
 
-  successResponse(res, 200, "تم تحديث المخزون بنجاح", {
-    stock: product.stock,
-  });
+  successResponse(res, 200, "تم تحديث المخزون بنجاح", { stock: product.stock });
 });
 
 // @desc    Get products by category
@@ -418,16 +530,12 @@ const searchProducts = asyncHandler(async (req, res, next) => {
     ],
   };
 
-  if (category) {
-    query.category = category;
-  }
-
+  if (category) query.category = category;
   if (minPrice || maxPrice) {
     query.price = {};
     if (minPrice) query.price.$gte = parseFloat(minPrice);
     if (maxPrice) query.price.$lte = parseFloat(maxPrice);
   }
-
   if (requiresPrescription !== undefined) {
     query.requiresPrescription = requiresPrescription === "true";
   }
@@ -473,7 +581,7 @@ const getBestSellingProducts = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get low stock products (Admin/Pharmacist)
+// @desc    Get low stock products
 // @route   GET /api/products/low-stock
 // @access  Private/Admin/Pharmacist
 const getLowStockProducts = asyncHandler(async (req, res, next) => {
@@ -489,7 +597,7 @@ const getLowStockProducts = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get product statistics (Admin)
+// @desc    Get product statistics
 // @route   GET /api/products/stats
 // @access  Private/Admin
 const getProductStats = asyncHandler(async (req, res, next) => {
@@ -503,7 +611,6 @@ const getProductStats = asyncHandler(async (req, res, next) => {
     requiresPrescription: true,
   });
 
-  // التوزيع حسب الفئة
   const categoryDistribution = await Product.aggregate([
     { $match: { isActive: true } },
     {
@@ -516,7 +623,6 @@ const getProductStats = asyncHandler(async (req, res, next) => {
     { $sort: { count: -1 } },
   ]);
 
-  // أفضل المنتجات
   const topProducts = await Product.find({ isActive: true })
     .sort("-salesCount")
     .limit(10)

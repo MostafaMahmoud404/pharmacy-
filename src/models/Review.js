@@ -7,7 +7,6 @@ const reviewSchema = new mongoose.Schema(
       enum: ["doctor", "product", "service"],
       required: true,
     },
-    // للدكاترة
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Doctor",
@@ -16,7 +15,6 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Consultation",
     },
-    // للمنتجات
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
@@ -25,7 +23,6 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
     },
-    // المراجع
     reviewer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -37,7 +34,6 @@ const reviewSchema = new mongoose.Schema(
       min: [1, "التقييم يجب أن يكون 1 على الأقل"],
       max: [5, "التقييم يجب ألا يتجاوز 5"],
     },
-    // تقييمات تفصيلية للدكاترة
     detailedRatings: {
       professionalism: {
         type: Number,
@@ -76,12 +72,10 @@ const reviewSchema = new mongoose.Schema(
         publicId: String,
       },
     ],
-    // للمنتجات
     verifiedPurchase: {
       type: Boolean,
       default: false,
     },
-    // رد الطبيب أو الصيدلية
     response: {
       message: String,
       respondedBy: {
@@ -90,14 +84,12 @@ const reviewSchema = new mongoose.Schema(
       },
       respondedAt: Date,
     },
-    // الحالة
     status: {
       type: String,
       enum: ["pending", "approved", "rejected", "flagged"],
       default: "pending",
     },
     rejectionReason: String,
-    // إحصائيات
     helpfulCount: {
       type: Number,
       default: 0,
@@ -119,7 +111,6 @@ const reviewSchema = new mongoose.Schema(
         },
       },
     ],
-    // تقارير
     reports: [
       {
         reportedBy: {
@@ -150,7 +141,6 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
 reviewSchema.index({ doctor: 1, status: 1 });
 reviewSchema.index({ product: 1, status: 1 });
 reviewSchema.index({ reviewer: 1, createdAt: -1 });
@@ -158,7 +148,6 @@ reviewSchema.index({ rating: 1 });
 reviewSchema.index({ status: 1 });
 reviewSchema.index({ createdAt: -1 });
 
-// Compound index لمنع المراجعة المكررة
 reviewSchema.index(
   { doctor: 1, reviewer: 1, consultation: 1 },
   {
@@ -176,19 +165,16 @@ reviewSchema.index(
   }
 );
 
-// Virtual لحساب نسبة الفائدة
 reviewSchema.virtual("helpfulPercentage").get(function () {
   const total = this.helpfulCount + this.notHelpfulCount;
   if (total === 0) return 0;
   return Math.round((this.helpfulCount / total) * 100);
 });
 
-// Virtual للتحقق من وجود رد
 reviewSchema.virtual("hasResponse").get(function () {
   return !!this.response?.message;
 });
 
-// Virtual للتقييم التفصيلي المتوسط
 reviewSchema.virtual("averageDetailedRating").get(function () {
   if (!this.detailedRatings) return this.rating;
 
@@ -199,19 +185,15 @@ reviewSchema.virtual("averageDetailedRating").get(function () {
   return Math.round((sum / ratings.length) * 10) / 10;
 });
 
-// Pre-save middleware للتحقق من صحة البيانات
 reviewSchema.pre("save", async function (next) {
-  // التأكد من وجود doctor أو product
   if (!this.doctor && !this.product) {
     return next(new Error("يجب تحديد دكتور أو منتج للمراجعة"));
   }
 
-  // التأكد من عدم وجود الاثنين معاً
   if (this.doctor && this.product) {
     return next(new Error("لا يمكن مراجعة دكتور ومنتج في نفس الوقت"));
   }
 
-  // تحديد نوع المراجعة
   if (this.doctor) {
     this.reviewType = "doctor";
   } else if (this.product) {
@@ -221,7 +203,6 @@ reviewSchema.pre("save", async function (next) {
   next();
 });
 
-// Post-save middleware لتحديث التقييم
 reviewSchema.post("save", async function () {
   if (this.doctor && this.status === "approved") {
     const Doctor = mongoose.model("Doctor");
@@ -236,7 +217,6 @@ reviewSchema.post("save", async function () {
   }
 });
 
-// Post-remove middleware لتحديث التقييم عند الحذف
 reviewSchema.post("remove", async function () {
   if (this.doctor) {
     const Doctor = mongoose.model("Doctor");
@@ -251,7 +231,6 @@ reviewSchema.post("remove", async function () {
   }
 });
 
-// Method لتحديث تقييم المنتج
 reviewSchema.methods.updateProductRating = async function () {
   const stats = await mongoose.model("Review").aggregate([
     {
@@ -278,15 +257,15 @@ reviewSchema.methods.updateProductRating = async function () {
   }
 };
 
-// Method للتصويت على الفائدة
+
 reviewSchema.methods.vote = async function (userId, isHelpful) {
-  // التحقق من وجود تصويت سابق
+
   const existingVote = this.helpfulVotes.find(
     (vote) => vote.user.toString() === userId.toString()
   );
 
   if (existingVote) {
-    // تحديث التصويت
+
     if (existingVote.isHelpful !== isHelpful) {
       if (existingVote.isHelpful) {
         this.helpfulCount -= 1;
@@ -299,7 +278,7 @@ reviewSchema.methods.vote = async function (userId, isHelpful) {
       existingVote.votedAt = new Date();
     }
   } else {
-    // تصويت جديد
+
     this.helpfulVotes.push({
       user: userId,
       isHelpful,

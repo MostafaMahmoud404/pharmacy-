@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
+const Pharmacy = require("../models/Pharmacy");
 const { generateToken } = require("../config/jwt");
 const {
   asyncHandler,
@@ -66,6 +67,207 @@ const register = asyncHandler(async (req, res, next) => {
   });
 });
 
+
+
+
+const registerDoctor = asyncHandler(async (req, res, next) => {
+  const {
+    name,
+    email,
+    password,
+    phone,
+    specialty,
+    specialtyArabic,
+    licenseNumber,
+    experience,
+    consultationFee,
+  } = req.body;
+
+  // تحقق من وجود المستخدم مسبقا
+  const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+
+  if (existingUser) {
+    if (existingUser.email === email) {
+      return next(new ErrorResponse("البريد الإلكتروني مستخدم بالفعل", 400));
+    }
+    if (existingUser.phone === phone) {
+      return next(new ErrorResponse("رقم الهاتف مستخدم بالفعل", 400));
+    }
+  }
+
+  // تحقق من الحقول الإلزامية للدكتور
+  if (!specialty || !specialtyArabic || !licenseNumber || experience == null || consultationFee == null) {
+    return next(new ErrorResponse("جميع بيانات الدكتور الأساسية مطلوبة", 400));
+  }
+
+  // إنشاء المستخدم الدور Doctor
+  const user = await User.create({
+    name,
+    email,
+    password,
+    phone,
+    role: "doctor",
+  });
+
+  // إنشاء سجل الدكتور وربطه بالمستخدم
+  const doctor = await Doctor.create({
+    user: user._id,
+    specialty,
+    specialtyArabic,
+    licenseNumber,
+    experience,
+    consultationFee,
+  });
+
+  // توليد توكن تفعيل
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  user.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+  user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+  // JWT Token
+  const token = generateToken(user._id);
+
+  successResponse(res, 201, "تم تسجيل الدكتور بنجاح", {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    },
+    doctor: {
+      id: doctor._id,
+      specialty: doctor.specialty,
+      licenseNumber: doctor.licenseNumber,
+    },
+    token,
+  });
+});
+
+
+
+
+// ✅ ✅ ✅ إضافة دالة تسجيل الصيدلية ✅ ✅ ✅
+// @desc    Register Pharmacy
+// @route   POST /api/auth/register-pharmacy
+// @access  Public
+const registerPharmacy = asyncHandler(async (req, res, next) => {
+  const {
+    name,
+    email,
+    password,
+    phone,
+    pharmacyName,
+    pharmacyNameArabic,
+    licenseNumber,
+    licenseExpiry,
+    street,
+    city,
+    state,
+    zipCode,
+    description,
+    deliveryEnabled,
+    deliveryFee,
+    acceptsInsurance,
+  } = req.body;
+
+  // التحقق من وجود المستخدم مسبقاً
+  const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+
+  if (existingUser) {
+    if (existingUser.email === email) {
+      return next(new ErrorResponse("البريد الإلكتروني مستخدم بالفعل", 400));
+    }
+    if (existingUser.phone === phone) {
+      return next(new ErrorResponse("رقم الهاتف مستخدم بالفعل", 400));
+    }
+  }
+
+  // التحقق من وجود رقم الترخيص مسبقاً
+  const existingLicense = await Pharmacy.findOne({ licenseNumber });
+  if (existingLicense) {
+    return next(new ErrorResponse("رقم الترخيص مستخدم بالفعل", 400));
+  }
+
+  // التحقق من وجود ملف الترخيص
+  if (!req.file) {
+    return next(new ErrorResponse("ملف ترخيص الصيدلية مطلوب", 400));
+  }
+
+  // إنشاء المستخدم بدور pharmacist
+  const user = await User.create({
+    name,
+    email,
+    password,
+    phone,
+    role: "pharmacist",
+  });
+
+  // إنشاء سجل الصيدلية وربطه بالمستخدم
+  const pharmacy = await Pharmacy.create({
+    user: user._id,
+    pharmacyName,
+    pharmacyNameArabic,
+    licenseNumber,
+    licenseFile: req.file.path,
+    licenseExpiry,
+    address: {
+      street,
+      city,
+      state,
+      zipCode: zipCode || "",
+    },
+    description: description || "",
+    deliveryEnabled: deliveryEnabled !== undefined ? deliveryEnabled : true,
+    deliveryFee: deliveryFee || 0,
+    acceptsInsurance: acceptsInsurance || false,
+  });
+
+  // توليد توكن تفعيل
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  user.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+  user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+  // JWT Token
+  const token = generateToken(user._id);
+
+  successResponse(res, 201, "تم تسجيل الصيدلية بنجاح", {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    },
+    pharmacy: {
+      id: pharmacy._id,
+      pharmacyName: pharmacy.pharmacyName,
+      pharmacyNameArabic: pharmacy.pharmacyNameArabic,
+      licenseNumber: pharmacy.licenseNumber,
+      address: pharmacy.address,
+      isVerified: pharmacy.isVerified,
+    },
+    token,
+  });
+});
+
+
+
+
+
+
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
@@ -110,6 +312,15 @@ const login = asyncHandler(async (req, res, next) => {
     );
   }
 
+
+  // ✅ الحصول على ملف الصيدلية إذا كان pharmacist
+  let pharmacyProfile = null;
+  if (user.role === "pharmacist") {
+    pharmacyProfile = await Pharmacy.findOne({ user: user._id }).select(
+      "pharmacyName pharmacyNameArabic isVerified isAvailable rating"
+    );
+  }
+
   successResponse(res, 200, "تم تسجيل الدخول بنجاح", {
     user: {
       id: user._id,
@@ -120,6 +331,8 @@ const login = asyncHandler(async (req, res, next) => {
       profileImage: user.profileImage,
       isEmailVerified: user.isEmailVerified,
       ...(doctorProfile && { doctorProfile }),
+      ...(pharmacyProfile && { pharmacyProfile }), // ✅ إضافة
+
     },
     token,
   });
@@ -325,8 +538,13 @@ const resendVerification = asyncHandler(async (req, res, next) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = asyncHandler(async (req, res, next) => {
-  // في JWT، الـ logout يتم من جانب العميل بحذف الـ Token
-  // لكن يمكن إضافة Token إلى Blacklist إذا لزم الأمر
+  // مسح الـ cookie من العميل
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    expires: new Date(0),
+  });
 
   successResponse(res, 200, "تم تسجيل الخروج بنجاح");
 });
@@ -398,6 +616,8 @@ const sendResetPasswordEmail = async (email, token) => {
 
 module.exports = {
   register,
+  registerDoctor,
+  registerPharmacy,
   login,
   getMe,
   updateProfile,

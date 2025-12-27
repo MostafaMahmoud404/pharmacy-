@@ -433,6 +433,44 @@ const generatePrescriptionPDF = async (prescription) => {
   });
 };
 
+const uploadPrescriptionFile = asyncHandler(async (req, res, next) => {
+  if (!req.file) {
+    return next(new ErrorResponse("يرجى رفع ملف الروشتة", 400));
+  }
+
+  const { doctorId, notes } = req.body;
+
+  // التحقق من الطبيب إذا كان محدداً
+  if (doctorId) {
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return next(new ErrorResponse("الطبيب غير موجود", 404));
+    }
+  }
+
+  // إنشاء سجل مؤقت للروشتة المرفوعة
+  const prescription = await Prescription.create({
+    patient: req.user._id,
+    doctor: doctorId || null,
+    uploadedFile: {
+      url: req.file.path,
+      filename: req.file.filename,
+      uploadedAt: new Date(),
+    },
+    notes: notes || "روشتة مرفوعة من المريض",
+    status: "pending", // في انتظار مراجعة الصيدلي
+    diagnosis: "في انتظار المراجعة",
+    medications: [], // سيتم إضافتها من الصيدلي
+  });
+
+  await prescription.populate("patient", "name phone");
+
+  successResponse(res, 201, "تم رفع الروشتة بنجاح. سيتم مراجعتها قريباً", {
+    prescription,
+    fileUrl: req.file.path,
+  });
+});
+
 module.exports = {
   createPrescription,
   getPrescriptionById,
@@ -442,4 +480,5 @@ module.exports = {
   downloadPrescription,
   getPharmacyPrescriptions,
   updatePrescriptionStatus,
+  uploadPrescriptionFile,
 };

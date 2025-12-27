@@ -17,31 +17,34 @@ const notFound = (req, res, next) => {
 
 // Main Error Handler
 const errorHandler = (err, req, res, next) => {
+  const logger = require('../utils/logger');
+
   let error = { ...err };
   error.message = err.message;
   error.statusCode = err.statusCode || 500;
 
-  // Log للأخطاء في Development
-  if (process.env.NODE_ENV === "development") {
-    console.error("Error Details:", {
-      message: err.message,
-      stack: err.stack,
-      statusCode: error.statusCode,
-      path: req.originalUrl,
-      method: req.method,
-      body: req.body,
-      params: req.params,
-      query: req.query,
-    });
+  // Log error details
+  const errorDetails = {
+    message: err.message,
+    stack: err.stack,
+    statusCode: error.statusCode,
+    path: req.originalUrl,
+    method: req.method,
+    userId: req.user?.id || 'anonymous',
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    body: req.body,
+    params: req.params,
+    query: req.query,
+  };
+
+  // Log based on error severity
+  if (error.statusCode >= 500) {
+    logger.error('Server Error', errorDetails);
+  } else if (error.statusCode >= 400) {
+    logger.warn('Client Error', errorDetails);
   } else {
-    // في Production، نسجل فقط الأخطاء المهمة
-    if (error.statusCode === 500) {
-      console.error("Server Error:", {
-        message: err.message,
-        path: req.originalUrl,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    logger.info('Request Error', errorDetails);
   }
 
   // Mongoose Bad ObjectId Error

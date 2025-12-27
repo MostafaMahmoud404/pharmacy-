@@ -13,6 +13,11 @@ const protect = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
 
+  // استخراج الـ Token من الـ Cookies (للأمان الأعلى)
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
   // التحقق من وجود Token
   if (!token) {
     return res.status(401).json({
@@ -126,10 +131,10 @@ const checkOwnership = (model, paramName = "id") => {
       const ownerId = resource.user
         ? resource.user.toString()
         : resource.customer
-        ? resource.customer.toString()
-        : resource.patient
-        ? resource.patient.toString()
-        : null;
+          ? resource.customer.toString()
+          : resource.patient
+            ? resource.patient.toString()
+            : null;
 
       if (ownerId !== req.user._id.toString() && req.user.role !== "admin") {
         return res.status(403).json({

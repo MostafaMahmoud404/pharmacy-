@@ -75,12 +75,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes للبحث السريع
-// userSchema.index({ email: 1 });
-// userSchema.index({ phone: 1 });
+
 userSchema.index({ role: 1 });
 
-// Hash Password قبل الحفظ
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -89,12 +86,10 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Method للتحقق من كلمة المرور
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Method لإخفاء البيانات الحساسة
 userSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
@@ -104,7 +99,6 @@ userSchema.methods.toJSON = function () {
   return user;
 };
 
-// Virtual للربط مع Doctor Model
 userSchema.virtual("doctorProfile", {
   ref: "Doctor",
   localField: "_id",

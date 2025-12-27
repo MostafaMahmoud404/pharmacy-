@@ -1,3 +1,6 @@
+// ✅ doctorRoutes.js - FIXED WITH DASHBOARD ROUTE
+// Path: backend/routes/doctorRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const {
@@ -17,6 +20,10 @@ const {
   getDoctorsBySpecialty,
   uploadVerificationDocuments,
 } = require("../controllers/doctorController");
+
+// ✅ ADDED: Import dashboard controller
+const { getDoctorDashboard } = require("../controllers/dashboardController");
+
 const { protect, optionalAuth } = require("../middleware/auth");
 const {
   isDoctor,
@@ -31,14 +38,19 @@ const {
   validatePagination,
 } = require("../middleware/validation");
 
-// Public routes
-router.get("/", optionalAuth, validatePagination, getDoctors);
-router.get("/search", searchDoctors);
-router.get("/specialty/:specialty", getDoctorsBySpecialty);
-router.get("/:id", validateObjectId("id"), getDoctorById);
+// Public routes (but require authentication for privacy)
+router.get("/", protect, validatePagination, getDoctors);
+router.get("/search", protect, searchDoctors);
+router.get("/specialty/:specialty", protect, getDoctorsBySpecialty);
+router.get("/:id", protect, validateObjectId("id"), getDoctorById);
 
 // Protected routes
 router.use(protect);
+
+// ✅ ADDED: Dashboard route
+// IMPORTANT: Must be BEFORE /me/profile to avoid route conflicts
+// This handles GET /api/doctors/dashboard
+router.get("/dashboard", isDoctor, getDoctorDashboard);
 
 // Doctor routes
 router.post("/profile", isDoctor, validateDoctorProfile, createDoctorProfile);

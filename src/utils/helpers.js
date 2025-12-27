@@ -63,9 +63,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
@@ -223,6 +223,64 @@ const addHours = (date, hours) => {
   return result;
 };
 
+// إضافة أشهر لتاريخ معين
+const addMonths = (date, months) => {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+};
+
+// تنسيق التاريخ لسلسلة قابلة للقراءة
+const formatDate = (date, locale = "en-US") => {
+  return new Date(date).toLocaleDateString(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+// حساب فرق التاريخ بالأيام
+const diffInDays = (date1, date2) => {
+  const diff = Math.abs(date2 - date1);
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+// التحقق من أن التاريخ هو اليوم
+const isToday = (date) => {
+  const today = new Date();
+  const checkDate = new Date(date);
+  return (
+    checkDate.getDate() === today.getDate() &&
+    checkDate.getMonth() === today.getMonth() &&
+    checkDate.getFullYear() === today.getFullYear()
+  );
+};
+
+// التحقق من أن التاريخ في هذا الشهر
+const isThisMonth = (date) => {
+  const today = new Date();
+  const checkDate = new Date(date);
+  return (
+    checkDate.getMonth() === today.getMonth() &&
+    checkDate.getFullYear() === today.getFullYear()
+  );
+};
+
+// الحصول على نطاق التاريخ لآخر N أيام
+const getLastNDays = (n) => {
+  const end = new Date();
+  const start = addDays(end, -n);
+  return { start: startOfDay(start), end: endOfDay(end) };
+};
+
+// الحصول على نطاق الشهر الحالي
+const getCurrentMonthRange = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { start: startOfDay(start), end: endOfDay(end) };
+};
+
 // الحصول على بداية اليوم
 const startOfDay = (date = new Date()) => {
   const result = new Date(date);
@@ -358,9 +416,16 @@ module.exports = {
   getWorkingHours,
   isWorkingHour,
   addDays,
+  addMonths,
   addHours,
   startOfDay,
   endOfDay,
+  formatDate,
+  diffInDays,
+  isToday,
+  isThisMonth,
+  getLastNDays,
+  getCurrentMonthRange,
   shuffleArray,
   uniqueArray,
   groupBy,

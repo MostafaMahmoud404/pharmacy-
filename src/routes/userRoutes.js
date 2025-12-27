@@ -24,12 +24,12 @@ const {
 router.use(protect);
 
 // Profile Image
-router.put("/profile/image", uploadSingle("profileImage"), uploadProfileImage);
+router.put("/profile/image", protect, uploadSingle("profileImage"), uploadProfileImage);
 
 // Addresses
-router.post("/addresses", addAddress);
-router.put("/addresses/:addressId", updateAddress);
-router.delete("/addresses/:addressId", deleteAddress);
+router.post("/addresses", protect, addAddress);
+router.put("/addresses/:addressId", protect, updateAddress);
+router.delete("/addresses/:addressId", protect, deleteAddress);
 
 // Admin routes
 router.get("/", isAdmin, validatePagination, getUsers);

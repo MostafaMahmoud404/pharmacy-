@@ -1,3 +1,4 @@
+// middleware/validation.js
 const { body, param, query, validationResult } = require("express-validator");
 
 // معالجة أخطاء الـ Validation
@@ -21,7 +22,7 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Validation Rules for User Registration
+// ===== VALIDATION RULES FOR USER REGISTRATION =====
 const validateRegistration = [
   body("name")
     .trim()
@@ -63,7 +64,229 @@ const validateRegistration = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Login
+// ===== VALIDATION RULES FOR DOCTOR REGISTRATION =====
+const validateDoctorRegistration = [
+  body("name")
+    .trim()
+    .notEmpty()
+    .withMessage("الاسم مطلوب")
+    .isLength({ min: 3 })
+    .withMessage("الاسم يجب أن يكون 3 أحرف على الأقل")
+    .isLength({ max: 50 })
+    .withMessage("الاسم يجب ألا يتجاوز 50 حرف"),
+
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("البريد الإلكتروني مطلوب")
+    .isEmail()
+    .withMessage("البريد الإلكتروني غير صحيح")
+    .normalizeEmail(),
+
+  body("password")
+    .notEmpty()
+    .withMessage("كلمة المرور مطلوبة")
+    .isLength({ min: 6 })
+    .withMessage("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage("كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم"),
+
+  body("phone")
+    .trim()
+    .notEmpty()
+    .withMessage("رقم الهاتف مطلوب")
+    .matches(/^01[0-2,5]{1}[0-9]{8}$/)
+    .withMessage("رقم الهاتف غير صحيح (يجب أن يبدأ بـ 01)"),
+
+  body("specialty")
+    .trim()
+    .notEmpty()
+    .withMessage("التخصص (English) مطلوب")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("التخصص يجب أن يكون بين 2 و 100 حرف"),
+
+  body("specialtyArabic")
+    .trim()
+    .notEmpty()
+    .withMessage("التخصص (العربية) مطلوب")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("التخصص بالعربية يجب أن يكون بين 2 و 100 حرف"),
+
+  body("licenseNumber")
+    .trim()
+    .notEmpty()
+    .withMessage("رقم الترخيص مطلوب")
+    .isLength({ min: 3, max: 50 })
+    .withMessage("رقم الترخيص يجب أن يكون بين 3 و 50 حرف"),
+
+  body("experience")
+    .notEmpty()
+    .withMessage("سنوات الخبرة مطلوبة")
+    .isInt({ min: 0, max: 60 })
+    .withMessage("سنوات الخبرة يجب أن تكون رقم بين 0 و 60"),
+
+  body("consultationFee")
+    .notEmpty()
+    .withMessage("أجرة الاستشارة مطلوبة")
+    .isFloat({ min: 0 })
+    .withMessage("أجرة الاستشارة يجب أن تكون رقم موجب"),
+
+  (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "ملف الترخيص مطلوب",
+        errors: [
+          {
+            field: "licenseFile",
+            message: "ملف الترخيص (PDF، JPG، أو PNG) مطلوب",
+          },
+        ],
+      });
+    }
+    next();
+  },
+
+  handleValidationErrors,
+];
+
+// ===== VALIDATION RULES FOR PHARMACY REGISTRATION =====
+const validatePharmacyRegistration = [
+  body("name")
+    .trim()
+    .notEmpty()
+    .withMessage("الاسم مطلوب")
+    .isLength({ min: 3 })
+    .withMessage("الاسم يجب أن يكون 3 أحرف على الأقل")
+    .isLength({ max: 50 })
+    .withMessage("الاسم يجب ألا يتجاوز 50 حرف"),
+
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("البريد الإلكتروني مطلوب")
+    .isEmail()
+    .withMessage("البريد الإلكتروني غير صحيح")
+    .normalizeEmail(),
+
+  body("password")
+    .notEmpty()
+    .withMessage("كلمة المرور مطلوبة")
+    .isLength({ min: 6 })
+    .withMessage("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage("كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم"),
+
+  body("phone")
+    .trim()
+    .notEmpty()
+    .withMessage("رقم الهاتف مطلوب")
+    .matches(/^01[0-2,5]{1}[0-9]{8}$/)
+    .withMessage("رقم الهاتف غير صحيح (يجب أن يبدأ بـ 01)"),
+
+  body("pharmacyName")
+    .trim()
+    .notEmpty()
+    .withMessage("اسم الصيدلية (English) مطلوب")
+    .isLength({ min: 3, max: 100 })
+    .withMessage("اسم الصيدلية يجب أن يكون بين 3 و 100 حرف"),
+
+  body("pharmacyNameArabic")
+    .trim()
+    .notEmpty()
+    .withMessage("اسم الصيدلية (العربية) مطلوب")
+    .isLength({ min: 3, max: 100 })
+    .withMessage("اسم الصيدلية بالعربية يجب أن يكون بين 3 و 100 حرف"),
+
+  body("licenseNumber")
+    .trim()
+    .notEmpty()
+    .withMessage("رقم الترخيص مطلوب")
+    .isLength({ min: 5, max: 50 })
+    .withMessage("رقم الترخيص يجب أن يكون بين 5 و 50 حرف"),
+
+  body("licenseExpiry")
+    .notEmpty()
+    .withMessage("تاريخ انتهاء الترخيص مطلوب")
+    .isISO8601()
+    .withMessage("صيغة التاريخ غير صحيحة")
+    .custom((value) => {
+      const expiryDate = new Date(value);
+      const now = new Date();
+      if (expiryDate <= now) {
+        throw new Error("تاريخ انتهاء الترخيص يجب أن يكون في المستقبل");
+      }
+      return true;
+    }),
+
+  body("street")
+    .trim()
+    .notEmpty()
+    .withMessage("عنوان الشارع مطلوب")
+    .isLength({ min: 5, max: 200 })
+    .withMessage("عنوان الشارع يجب أن يكون بين 5 و 200 حرف"),
+
+  body("city")
+    .trim()
+    .notEmpty()
+    .withMessage("المدينة مطلوبة")
+    .isLength({ min: 2, max: 50 })
+    .withMessage("اسم المدينة يجب أن يكون بين 2 و 50 حرف"),
+
+  body("state")
+    .trim()
+    .notEmpty()
+    .withMessage("المحافظة مطلوبة")
+    .isLength({ min: 2, max: 50 })
+    .withMessage("اسم المحافظة يجب أن يكون بين 2 و 50 حرف"),
+
+  body("zipCode")
+    .optional()
+    .trim()
+    .isLength({ min: 5, max: 10 })
+    .withMessage("الرمز البريدي يجب أن يكون بين 5 و 10 أحرف"),
+
+  body("description")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage("الوصف يجب ألا يتجاوز 1000 حرف"),
+
+  body("deliveryEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("deliveryEnabled يجب أن يكون true أو false"),
+
+  body("deliveryFee")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("رسوم التوصيل يجب أن تكون رقم موجب"),
+
+  body("acceptsInsurance")
+    .optional()
+    .isBoolean()
+    .withMessage("acceptsInsurance يجب أن يكون true أو false"),
+
+  (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "ملف الترخيص مطلوب",
+        errors: [
+          {
+            field: "licenseFile",
+            message: "ملف الترخيص (PDF، JPG، أو PNG) مطلوب",
+          },
+        ],
+      });
+    }
+    next();
+  },
+
+  handleValidationErrors,
+];
+
+// ===== VALIDATION RULES FOR LOGIN =====
 const validateLogin = [
   body("email")
     .trim()
@@ -78,7 +301,7 @@ const validateLogin = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Doctor Profile
+// ===== VALIDATION RULES FOR DOCTOR PROFILE =====
 const validateDoctorProfile = [
   body("specialty")
     .notEmpty()
@@ -127,23 +350,30 @@ const validateDoctorProfile = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Product
+// ===== VALIDATION RULES FOR PRODUCT =====
+// ⭐ تم التحديث - إزالة الحقول غير الضرورية
 const validateProduct = [
   body("name")
     .trim()
     .notEmpty()
     .withMessage("اسم المنتج مطلوب")
-    .isLength({ min: 3, max: 200 })
-    .withMessage("اسم المنتج يجب أن يكون بين 3 و 200 حرف"),
+    .isLength({ min: 2, max: 200 })
+    .withMessage("اسم المنتج يجب أن يكون بين 2 و 200 حرف"),
 
-  body("nameArabic").trim().notEmpty().withMessage("الاسم العربي مطلوب"),
-
-  body("description")
+  body("category")
     .trim()
     .notEmpty()
-    .withMessage("الوصف مطلوب")
-    .isLength({ max: 2000 })
-    .withMessage("الوصف يجب ألا يتجاوز 2000 حرف"),
+    .withMessage("التصنيف مطلوب")
+    .isIn([
+      "Medications",
+      "Vitamins and Supplements",
+      "Personal Care",
+      "Medical Equipment",
+      "Baby and Mother Care",
+      "Skin Care",
+      "Herbal and Natural",
+    ])
+    .withMessage("التصنيف غير صحيح"),
 
   body("price")
     .notEmpty()
@@ -157,40 +387,57 @@ const validateProduct = [
     .isInt({ min: 0 })
     .withMessage("الكمية يجب أن تكون رقم صحيح موجب"),
 
-  body("category")
+  body("sku")
+    .trim()
     .notEmpty()
-    .withMessage("التصنيف مطلوب")
-    .isIn([
-      "pain-relief",
-      "antibiotics",
-      "vitamins",
-      "diabetes",
-      "heart",
-      "respiratory",
-      "digestive",
-      "skin-care",
-      "supplements",
-      "baby-care",
-      "personal-care",
-      "other",
-    ])
-    .withMessage("التصنيف غير صحيح"),
+    .withMessage("SKU مطلوب")
+    .isLength({ min: 3, max: 50 })
+    .withMessage("SKU يجب أن يكون بين 3 و 50 حرف"),
+
+  // Optional fields
+  body("nameArabic")
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage("الاسم العربي يجب ألا يتجاوز 200 حرف"),
+
+  body("description")
+    .optional()
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage("الوصف يجب ألا يتجاوز 2000 حرف"),
+
+  body("discountPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("سعر الخصم يجب أن يكون رقم موجب"),
 
   body("requiresPrescription")
     .optional()
     .isBoolean()
     .withMessage("requiresPrescription يجب أن يكون true أو false"),
 
-  body("sku")
-    .notEmpty()
-    .withMessage("SKU مطلوب")
-    .isLength({ min: 3, max: 50 })
-    .withMessage("SKU يجب أن يكون بين 3 و 50 حرف"),
+  body("dosageForm")
+    .optional()
+    .trim()
+    .isIn([
+      "Tablet",
+      "Capsule",
+      "Syrup",
+      "Injection",
+      "Cream",
+      "Ointment",
+      "Drops",
+      "Spray",
+      "Powder",
+      "Solution",
+    ])
+    .withMessage("شكل الجرعة غير صحيح"),
 
   handleValidationErrors,
 ];
 
-// Validation Rules for Prescription
+// ===== VALIDATION RULES FOR PRESCRIPTION =====
 const validatePrescription = [
   body("diagnosis")
     .trim()
@@ -223,7 +470,7 @@ const validatePrescription = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Consultation (معدل)
+// ===== VALIDATION RULES FOR CONSULTATION =====
 const validateConsultation = [
   body("doctorId")
     .notEmpty()
@@ -271,7 +518,7 @@ const validateConsultation = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Message (جديد)
+// ===== VALIDATION RULES FOR MESSAGE =====
 const validateMessage = [
   param("id").isMongoId().withMessage("معرف الاستشارة غير صحيح"),
 
@@ -290,7 +537,7 @@ const validateMessage = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Rating Consultation (جديد)
+// ===== VALIDATION RULES FOR RATING CONSULTATION =====
 const validateRating = [
   param("id").isMongoId().withMessage("معرف الاستشارة غير صحيح"),
 
@@ -309,7 +556,7 @@ const validateRating = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Payment Confirmation (جديد)
+// ===== VALIDATION RULES FOR PAYMENT CONFIRMATION =====
 const validatePayment = [
   param("id").isMongoId().withMessage("معرف الاستشارة غير صحيح"),
 
@@ -328,7 +575,7 @@ const validatePayment = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Cancellation (جديد)
+// ===== VALIDATION RULES FOR CANCELLATION =====
 const validateCancellation = [
   param("id").isMongoId().withMessage("معرف الاستشارة غير صحيح"),
 
@@ -342,7 +589,7 @@ const validateCancellation = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Completion (جديد)
+// ===== VALIDATION RULES FOR COMPLETION =====
 const validateCompletion = [
   param("id").isMongoId().withMessage("معرف الاستشارة غير صحيح"),
 
@@ -363,7 +610,7 @@ const validateCompletion = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Order
+// ===== VALIDATION RULES FOR ORDER =====
 const validateOrder = [
   body("items")
     .isArray({ min: 1 })
@@ -401,7 +648,7 @@ const validateOrder = [
   handleValidationErrors,
 ];
 
-// Validation Rules for Review
+// ===== VALIDATION RULES FOR REVIEW =====
 const validateReview = [
   body("rating")
     .notEmpty()
@@ -425,13 +672,13 @@ const validateReview = [
   handleValidationErrors,
 ];
 
-// Validation for MongoDB ObjectId
+// ===== VALIDATION FOR MONGODB OBJECTID =====
 const validateObjectId = (paramName = "id") => [
   param(paramName).isMongoId().withMessage(`${paramName} غير صحيح`),
   handleValidationErrors,
 ];
 
-// Validation for Pagination
+// ===== VALIDATION FOR PAGINATION =====
 const validatePagination = [
   query("page")
     .optional()
@@ -448,7 +695,7 @@ const validatePagination = [
   handleValidationErrors,
 ];
 
-// Validation for Email
+// ===== VALIDATION FOR EMAIL =====
 const validateEmail = [
   body("email")
     .trim()
@@ -460,7 +707,7 @@ const validateEmail = [
   handleValidationErrors,
 ];
 
-// Validation for Password Reset
+// ===== VALIDATION FOR PASSWORD RESET =====
 const validatePasswordReset = [
   body("password")
     .notEmpty()
@@ -483,7 +730,7 @@ const validatePasswordReset = [
   handleValidationErrors,
 ];
 
-// Validation for Update Password
+// ===== VALIDATION FOR UPDATE PASSWORD =====
 const validateUpdatePassword = [
   body("currentPassword").notEmpty().withMessage("كلمة المرور الحالية مطلوبة"),
 
@@ -504,7 +751,7 @@ const validateUpdatePassword = [
   handleValidationErrors,
 ];
 
-// Custom validation for file uploads
+// ===== CUSTOM VALIDATION FOR FILE UPLOADS =====
 const validateFileUpload = (allowedTypes, maxSize = 5 * 1024 * 1024) => {
   return (req, res, next) => {
     if (!req.file && !req.files) {
@@ -541,6 +788,8 @@ const validateFileUpload = (allowedTypes, maxSize = 5 * 1024 * 1024) => {
 module.exports = {
   handleValidationErrors,
   validateRegistration,
+  validateDoctorRegistration,
+  validatePharmacyRegistration,
   validateLogin,
   validateDoctorProfile,
   validateProduct,

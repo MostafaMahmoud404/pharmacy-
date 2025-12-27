@@ -5,7 +5,6 @@ const consultationSchema = new mongoose.Schema(
     consultationNumber: {
       type: String,
       unique: true,
-      // لا نضع required هنا لأن الـ Controller يولده يدوياً
     },
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
@@ -351,38 +350,36 @@ const consultationSchema = new mongoose.Schema(
   }
 );
 
-// ==================== Indexes ====================
-// consultationSchema.index({ consultationNumber: 1 }, { unique: true });
+
+
 consultationSchema.index({ doctor: 1, scheduledTime: -1 });
 consultationSchema.index({ patient: 1, scheduledTime: -1 });
 consultationSchema.index({ status: 1, scheduledTime: 1 });
 // consultationSchema.index({ "payment.status": 1 });
 consultationSchema.index({ createdAt: -1 });
 
-// Compound index للبحث عن الاستشارات المتاحة
+
 consultationSchema.index({
   doctor: 1,
   scheduledTime: 1,
   status: 1,
 });
 
-// ==================== Virtuals ====================
 
-// Virtual لحساب المدة الفعلية
+
+
 consultationSchema.virtual("actualDuration").get(function () {
   if (this.actualStartTime && this.actualEndTime) {
-    return Math.round((this.actualEndTime - this.actualStartTime) / 60000); // بالدقائق
+    return Math.round((this.actualEndTime - this.actualStartTime) / 60000); 
   }
   return 0;
 });
 
-// Virtual للتحقق من إمكانية البدء
 consultationSchema.virtual("canStart").get(function () {
   const now = new Date();
   const scheduledTime = new Date(this.scheduledTime);
-  const timeDiff = (scheduledTime - now) / 60000; // بالدقائق
+  const timeDiff = (scheduledTime - now) / 60000; 
 
-  // يمكن البدء قبل الموعد بـ 10 دقائق وحتى 30 دقيقة بعد الموعد
   return (
     this.status === "confirmed" &&
     this.payment.status === "paid" &&
@@ -391,12 +388,10 @@ consultationSchema.virtual("canStart").get(function () {
   );
 });
 
-// Virtual لعدد الرسائل غير المقروءة
 consultationSchema.virtual("unreadMessagesCount").get(function () {
   return this.chatMessages.filter((msg) => !msg.isRead).length;
 });
 
-// Virtual للحصول على آخر رسالة
 consultationSchema.virtual("lastMessage").get(function () {
   if (this.chatMessages && this.chatMessages.length > 0) {
     return this.chatMessages[this.chatMessages.length - 1];
@@ -404,7 +399,6 @@ consultationSchema.virtual("lastMessage").get(function () {
   return null;
 });
 
-// Virtual للتحقق من إمكانية الإلغاء
 consultationSchema.virtual("canCancel").get(function () {
   return !["completed", "cancelled"].includes(this.status);
 });
@@ -414,11 +408,8 @@ consultationSchema.virtual("canRate").get(function () {
   return this.status === "completed" && !this.rating?.score;
 });
 
-// ==================== Pre-save Middleware ====================
 
-// التأكد من وجود consultationNumber عند الحفظ (Fallback)
 consultationSchema.pre("save", async function (next) {
-  // فقط إذا كان document جديد ومافيش consultationNumber
   if (this.isNew && !this.consultationNumber) {
     console.warn(
       "⚠️ consultationNumber not provided, generating fallback number"
@@ -429,7 +420,6 @@ consultationSchema.pre("save", async function (next) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
 
-      // محاولة إيجاد آخر رقم استشارة لهذا الشهر
       const lastConsultation = await mongoose
         .model("Consultation")
         .findOne({
@@ -455,7 +445,6 @@ consultationSchema.pre("save", async function (next) {
       console.log("✅ Generated fallback consultation number:", this.consultationNumber);
     } catch (error) {
       console.error("❌ Error generating consultation number:", error);
-      // استخدام timestamp + random كـ fallback أخير
       const timestamp = Date.now();
       const random = Math.floor(Math.random() * 1000);
       this.consultationNumber = `CS${timestamp}${random}`;
@@ -464,16 +453,13 @@ consultationSchema.pre("save", async function (next) {
   next();
 });
 
-// التحقق من صحة البيانات قبل الحفظ
 consultationSchema.pre("save", function (next) {
-  // التحقق من أن actualEndTime بعد actualStartTime
   if (this.actualStartTime && this.actualEndTime) {
     if (this.actualEndTime < this.actualStartTime) {
       return next(new Error("وقت الانتهاء يجب أن يكون بعد وقت البدء"));
     }
   }
 
-  // التحقق من أن followUpDate في المستقبل
   if (this.followUpRequired && this.followUpDate) {
     if (this.followUpDate < new Date()) {
       return next(new Error("تاريخ المتابعة يجب أن يكون في المستقبل"));
@@ -483,9 +469,8 @@ consultationSchema.pre("save", function (next) {
   next();
 });
 
-// ==================== Instance Methods ====================
 
-// Method لبدء الاستشارة
+
 consultationSchema.methods.start = async function () {
   const now = new Date();
   const scheduledTime = new Date(this.scheduledTime);

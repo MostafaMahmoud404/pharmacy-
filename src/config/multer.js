@@ -1,8 +1,9 @@
+// config/multer.js
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// إنشاء المجلدات المطلوبة
+// ===== CREATE UPLOAD DIRECTORIES =====
 const createUploadDirectories = () => {
   const directories = [
     "./uploads",
@@ -10,6 +11,9 @@ const createUploadDirectories = () => {
     "./uploads/products",
     "./uploads/prescriptions",
     "./uploads/documents",
+    "./uploads/doctor-licenses",
+    "./uploads/pharmacy-licenses", // ✅ مجلد جديد للصيدليات
+    "./uploads/pharmacy-images",   // ✅ مجلد لصور الصيدليات
     "./uploads/reviews",
     "./uploads/deliveries",
     "./uploads/reports",
@@ -26,18 +30,27 @@ const createUploadDirectories = () => {
 
 createUploadDirectories();
 
-// Storage Configuration
+// ===== STORAGE CONFIGURATION =====
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = "./uploads/";
 
-    // تحديد المسار بناءً على نوع الملف
+    // Determine upload path based on fieldname
     if (file.fieldname === "profileImage") {
       uploadPath += "profiles/";
     } else if (file.fieldname === "productImages") {
       uploadPath += "products/";
     } else if (file.fieldname === "prescriptionFile") {
       uploadPath += "prescriptions/";
+    } else if (file.fieldname === "licenseFile") {
+      // ✅ التحقق من نوع المستخدم لتحديد المسار
+      if (req.body.pharmacyName || req.body.pharmacyNameArabic) {
+        uploadPath += "pharmacy-licenses/"; // للصيدليات
+      } else {
+        uploadPath += "doctor-licenses/"; // للأطباء
+      }
+    } else if (file.fieldname === "pharmacyImage") {
+      uploadPath += "pharmacy-images/"; // ✅ صورة الصيدلية
     } else if (
       file.fieldname === "documents" ||
       file.fieldname === "verificationDocuments"
@@ -51,13 +64,14 @@ const storage = multer.diskStorage({
 
     cb(null, uploadPath);
   },
+
   filename: (req, file, cb) => {
-    // إنشاء اسم فريد للملف
+    // Create unique filename
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const nameWithoutExt = path.basename(file.originalname, ext);
 
-    // تنظيف اسم الملف
+    // Clean filename
     const cleanName = nameWithoutExt
       .replace(/[^a-zA-Z0-9]/g, "-")
       .substring(0, 50);
@@ -66,7 +80,9 @@ const storage = multer.diskStorage({
   },
 });
 
-// File Filter للصور
+// ===== FILE FILTERS =====
+
+// Filter for images
 const imageFilter = (req, file, cb) => {
   const allowedTypes = [
     "image/jpeg",
@@ -86,7 +102,7 @@ const imageFilter = (req, file, cb) => {
   }
 };
 
-// File Filter للمستندات
+// Filter for documents (PDFs, Images, Word docs)
 const documentFilter = (req, file, cb) => {
   const allowedTypes = [
     "application/pdf",
@@ -98,13 +114,20 @@ const documentFilter = (req, file, cb) => {
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
+    console.log(`✅ File accepted: ${file.originalname} (${file.mimetype})`);
     cb(null, true);
   } else {
-    cb(new Error("نوع الملف غير مسموح. يرجى رفع PDF, Word, أو صورة"), false);
+    console.error(`❌ File rejected: ${file.originalname} (${file.mimetype})`);
+    cb(
+      new Error("نوع الملف غير مسموح. يرجى رفع PDF, Word, JPG, أو PNG"),
+      false
+    );
   }
 };
 
-// Multer configuration للصور
+// ===== MULTER CONFIGURATIONS =====
+
+// For image uploads
 const uploadImage = multer({
   storage: storage,
   fileFilter: imageFilter,
@@ -113,7 +136,7 @@ const uploadImage = multer({
   },
 });
 
-// Multer configuration للمستندات
+// For document uploads (including Doctor & Pharmacy Licenses)
 const uploadDocument = multer({
   storage: storage,
   fileFilter: documentFilter,
@@ -122,7 +145,7 @@ const uploadDocument = multer({
   },
 });
 
-// Multer configuration لأي ملف
+// For any file uploads
 const uploadAny = multer({
   storage: storage,
   limits: {
@@ -130,9 +153,34 @@ const uploadAny = multer({
   },
 });
 
+// ===== ERROR HANDLER FOR MULTER =====
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "FILE_TOO_LARGE") {
+      return res.status(400).json({
+        success: false,
+        message: "حجم الملف كبير جداً",
+      });
+    }
+    if (err.code === "LIMIT_FILE_COUNT") {
+      return res.status(400).json({
+        success: false,
+        message: "عدد الملفات كبير جداً",
+      });
+    }
+  } else if (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+  next();
+};
+
 module.exports = {
   uploadImage,
   uploadDocument,
   uploadAny,
   storage,
+  handleMulterError,
 };
