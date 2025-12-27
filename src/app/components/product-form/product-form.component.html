@@ -1,0 +1,329 @@
+<!-- src/app/components/product-form/product-form.component.html -->
+
+<div class="products-management-container" dir="ltr">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">{{ isEditMode ? 'Edit Product' : 'Add New Product' }}</h1>
+      <p class="page-subtitle">{{ isEditMode ? 'Update product information' : 'Add a new product to your pharmacy
+        inventory' }}</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-back" (click)="cancel()">
+        <span class="btn-icon">←</span>
+        <span>Back to Products</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>{{ isEditMode ? 'Loading product...' : 'Saving product...' }}</p>
+  </div>
+
+  <!-- Form Container -->
+  <form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="form-container">
+
+    <!-- Basic Information Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <h2 class="section-title">Basic Information</h2>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Product Name (English) <span class="required">*</span></label>
+          <input type="text" formControlName="name" placeholder="e.g., Paracetamol 500mg" class="form-input"
+            [class.invalid]="isFieldInvalid('name')" />
+          <span class="error-message" *ngIf="isFieldInvalid('name')">Name is required (min 3 characters)</span>
+        </div>
+
+        <div class="form-group">
+          <label>Product Name (Arabic) <span class="required">*</span></label>
+          <input type="text" formControlName="nameArabic" placeholder="مثال: باراسيتامول 500 ملجم" class="form-input"
+            [class.invalid]="isFieldInvalid('nameArabic')" dir="rtl" />
+          <span class="error-message" *ngIf="isFieldInvalid('nameArabic')">Arabic name is required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="description" rows="3" class="form-input"
+          placeholder="Detailed description of the product..."></textarea>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Scientific Name</label>
+          <input type="text" formControlName="scientificName" placeholder="e.g., Acetaminophen" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>SKU <span class="required">*</span></label>
+          <div class="sku-input-group">
+            <input type="text" formControlName="sku" placeholder="PRD-12345678" class="form-input" readonly />
+            <button type="button" class="btn-generate-sku" (click)="generateSKU()" title="Generate new SKU">
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">🏷️</span>
+        <h2 class="section-title">Category & Classification</h2>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Category <span class="required">*</span></label>
+          <select formControlName="category" (change)="onCategoryChange()" class="form-input"
+            [class.invalid]="isFieldInvalid('category')">
+            <option value="">Select Category</option>
+            <option *ngFor="let cat of categories" [value]="cat.en">{{ cat.ar }}</option>
+          </select>
+          <span class="error-message" *ngIf="isFieldInvalid('category')">Category is required</span>
+        </div>
+
+        <div class="form-group">
+          <label>Sub-Category</label>
+          <input type="text" formControlName="subCategory" placeholder="e.g., Pain Relief" class="form-input" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tags (Keywords)</label>
+        <input type="text" formControlName="tags" class="form-input"
+          placeholder="e.g., headache, pain, fever (comma separated)" />
+        <small class="form-hint">Separate tags with commas (,)</small>
+      </div>
+    </div>
+
+    <!-- Pricing & Stock Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">💰</span>
+        <h2 class="section-title">Pricing & Inventory</h2>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Price (USD) <span class="required">*</span></label>
+          <input type="number" formControlName="price" placeholder="0.00" step="0.01" class="form-input"
+            [class.invalid]="isFieldInvalid('price')" />
+          <span class="error-message" *ngIf="isFieldInvalid('price')">Price is required</span>
+        </div>
+
+        <div class="form-group">
+          <label>Discount Price</label>
+          <input type="number" formControlName="discountPrice" placeholder="0.00" step="0.01" class="form-input" />
+          <small class="form-hint">Leave empty if no discount</small>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Stock Quantity <span class="required">*</span></label>
+          <input type="number" formControlName="stock" placeholder="0" class="form-input"
+            [class.invalid]="isFieldInvalid('stock')" />
+          <span class="error-message" *ngIf="isFieldInvalid('stock')">Stock quantity is required</span>
+        </div>
+
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" formControlName="barcode" placeholder="1234567890123" class="form-input" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Medical Information Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">💊</span>
+        <h2 class="section-title">Medical Information</h2>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Manufacturer</label>
+          <input type="text" formControlName="manufacturer" placeholder="e.g., Pfizer" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Dosage Form</label>
+          <select formControlName="dosageForm" class="form-input">
+            <option value="">Select Form</option>
+            <option *ngFor="let form of dosageForms" [value]="form">{{ form }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Strength/Concentration</label>
+          <input type="text" formControlName="strength" placeholder="e.g., 500mg" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Pack Size</label>
+          <input type="text" formControlName="packSize" placeholder="e.g., 30 tablets" class="form-input" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Active Ingredients</label>
+        <input type="text" formControlName="activeIngredients" class="form-input"
+          placeholder="e.g., Paracetamol, Caffeine (comma separated)" />
+        <small class="form-hint">Separate ingredients with commas (,)</small>
+      </div>
+
+      <div class="form-group checkbox-wrapper">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="requiresPrescription" />
+          <span class="checkbox-text">
+            <span class="checkbox-icon">📋</span>
+            <span>Requires Prescription</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Usage Instructions Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">📝</span>
+        <h2 class="section-title">Usage Instructions</h2>
+      </div>
+
+      <div class="form-group">
+        <label>Usage Instructions</label>
+        <textarea formControlName="usageInstructions" rows="3" class="form-input"
+          placeholder="Instructions for use and dosage..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Side Effects</label>
+        <input type="text" formControlName="sideEffects" class="form-input"
+          placeholder="e.g., Nausea, Dizziness (comma separated)" />
+        <small class="form-hint">Separate with commas (,)</small>
+      </div>
+
+      <div class="form-group">
+        <label>Contraindications</label>
+        <input type="text" formControlName="contraindications" class="form-input"
+          placeholder="e.g., Pregnancy, Breastfeeding (comma separated)" />
+        <small class="form-hint">Separate with commas (,)</small>
+      </div>
+
+      <div class="form-group">
+        <label>Warnings</label>
+        <input type="text" formControlName="warnings" class="form-input"
+          placeholder="e.g., Not for children, Consult doctor (comma separated)" />
+        <small class="form-hint">Separate with commas (,)</small>
+      </div>
+    </div>
+
+    <!-- Storage & Expiry Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">📦</span>
+        <h2 class="section-title">Storage & Expiry</h2>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Storage Conditions</label>
+          <input type="text" formControlName="storageConditions" class="form-input"
+            placeholder="e.g., Store in cool, dry place" />
+        </div>
+
+        <div class="form-group">
+          <label>Expiry Date</label>
+          <input type="date" formControlName="expiryDate" class="form-input" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Images Upload Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">📷</span>
+        <h2 class="section-title">Product Images</h2>
+      </div>
+
+      <div class="upload-zone">
+        <input type="file" id="imageUpload" multiple accept="image/*" (change)="onImageSelect($event)"
+          style="display: none" />
+        <label for="imageUpload" class="upload-area">
+          <div class="upload-content">
+            <div class="upload-icon-large">📤</div>
+            <p class="upload-title">Click to upload images</p>
+            <p class="upload-subtitle">or drag and drop</p>
+            <small class="upload-hint">PNG, JPG up to 5MB (max 5 images)</small>
+          </div>
+        </label>
+      </div>
+
+      <div class="images-grid" *ngIf="imagePreviews.length > 0">
+        <div class="image-card" *ngFor="let preview of imagePreviews; let i = index">
+          <img [src]="preview" [alt]="'Product image ' + (i + 1)" />
+          <button type="button" class="btn-remove-image" (click)="removeImage(i)" title="Remove image">
+            <span>✖</span>
+          </button>
+          <div class="image-overlay">
+            <span class="image-number">{{ i + 1 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="stat-card form-section">
+      <div class="section-header">
+        <span class="section-icon">⚙️</span>
+        <h2 class="section-title">Product Status</h2>
+      </div>
+
+      <div class="status-toggles">
+        <div class="form-group checkbox-wrapper">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive" />
+            <span class="checkbox-text">
+              <span class="checkbox-icon">✅</span>
+              <span>Product is Active</span>
+            </span>
+          </label>
+          <small class="form-hint">Active products are visible to customers</small>
+        </div>
+
+        <div class="form-group checkbox-wrapper">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isFeatured" />
+            <span class="checkbox-text">
+              <span class="checkbox-icon">⭐</span>
+              <span>Featured Product</span>
+            </span>
+          </label>
+          <small class="form-hint">Featured products appear in special sections</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="form-actions-card">
+      <button type="button" class="btn-cancel" (click)="cancel()">
+        <span>✖</span>
+        <span>Cancel</span>
+      </button>
+      <button type="submit" class="btn-submit" [disabled]="isLoading || productForm.invalid">
+        <span>{{ isEditMode ? '💾' : '➕' }}</span>
+        <span>{{ isEditMode ? 'Save Changes' : 'Add Product' }}</span>
+      </button>
+    </div>
+  </form>
+</div>

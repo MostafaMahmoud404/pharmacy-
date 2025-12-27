@@ -1,12 +1,12 @@
+<!-- src/app/components/navbar/navbar.component.html -->
 <nav class="main-navbar">
   <div class="container nav-container">
 
     <!-- Logo -->
     <div class="nav-logo" routerLink="/home">
-      <img src="assets/logo.png" alt="pharmacy logo" />
-
+      <img src="assets/image/logo2.jpeg" alt="DOC&DOSE logo" />
       <div class="logo-text">
-        <h1>PHARMACY</h1>
+        <h1>DOC&DOSE</h1>
         <span>Your Health • Our Care</span>
       </div>
     </div>
@@ -14,8 +14,18 @@
     <!-- Desktop Menu -->
     <ul class="nav-links">
       <li><a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
+      <li><a routerLink="/about" routerLinkActive="active">About</a></li>
       <li><a routerLink="/doctors" routerLinkActive="active">Doctors</a></li>
+      <li><a routerLink="/consultations" routerLinkActive="active">Consultations</a></li>
       <li><a routerLink="/pharmacy" routerLinkActive="active">Pharmacy</a></li>
+
+      <!-- Products Link - Available for all users -->
+      <li><a routerLink="/products" routerLinkActive="active">Products</a></li>
+
+      <!-- Cart Link -->
+      <li><a routerLink="/cart" routerLinkActive="active">
+          <i class="bi bi-cart"></i> Cart
+        </a></li>
 
       <!-- Search Box -->
       <li class="nav-search">
@@ -31,22 +41,29 @@
         </button>
       </li>
 
-      <!-- Dashboard Link - يظهر فقط للصيادلة -->
-      <li *ngIf="isLoggedIn && isPharmacist">
+      <!-- Dashboard Button - For logged in users -->
+      <li *ngIf="isLoggedIn">
         <button class="btn-dashboard" (click)="goToDashboard()">
-          Dashboard
+          <i class="bi bi-speedometer2"></i> Dashboard
         </button>
       </li>
 
-      <!-- إذا لم يكن مسجل دخول - عرض Login -->
+      <!-- Manage Products Button - Pharmacist only -->
+      <li *ngIf="isPharmacist">
+        <button class="btn-manage-products" (click)="goToProductsManagement()">
+          <i class="bi bi-plus-circle"></i> Add Product
+        </button>
+      </li>
+
+      <!-- Login Button - عند عدم تسجيل الدخول -->
       <li *ngIf="!isLoggedIn">
         <a routerLink="/login" routerLinkActive="active">Login</a>
       </li>
 
-      <!-- إذا كان مسجل دخول - عرض Logout -->
+      <!-- Logout Button - عند تسجيل الدخول -->
       <li *ngIf="isLoggedIn">
         <button class="logout-btn" (click)="logout()">
-          {{ currentUser?.name || currentUser?.email || 'User' }} - Logout
+          <i class="bi bi-box-arrow-right"></i> {{ currentUser?.name || currentUser?.email || 'User' }}
         </button>
       </li>
     </ul>
@@ -61,13 +78,35 @@
 
   <!-- Mobile Menu -->
   <div class="mobile-menu" [class.active]="mobileMenuOpen">
-    <a routerLink="/home" routerLinkActive="active" (click)="closeMobileMenu()">Home</a>
-    <a routerLink="/doctors" routerLinkActive="active" (click)="closeMobileMenu()">Doctors</a>
-    <a routerLink="/pharmacy" routerLinkActive="active" (click)="closeMobileMenu()">Pharmacy</a>
+    <a routerLink="/home" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-house-door"></i> Home
+    </a>
+    <a routerLink="/doctors" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-heart-pulse"></i> Doctors
+    </a>
+    <a routerLink="/consultations" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-calendar-check"></i> Consultations
+    </a>
+    <a routerLink="/pharmacy" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-capsule"></i> Pharmacy
+    </a>
 
-    <!-- Dashboard Link - يظهر فقط للصيادلة -->
-    <button *ngIf="isLoggedIn && isPharmacist" class="btn-dashboard" (click)="goToDashboard()">
-      Dashboard
+    <a routerLink="/products" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-bag-check"></i> Products
+    </a>
+
+    <a routerLink="/cart" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-cart"></i> Cart
+    </a>
+
+    <!-- Dashboard Button - For logged in users -->
+    <button *ngIf="isLoggedIn" class="btn-dashboard" (click)="goToDashboard()">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </button>
+
+    <!-- Manage Products Button - Pharmacist only -->
+    <button *ngIf="isPharmacist" class="btn-manage-products" (click)="goToProductsManagement()">
+      <i class="bi bi-plus-circle"></i> Add Product
     </button>
 
     <div class="mobile-search">
@@ -76,15 +115,28 @@
     </div>
 
     <button class="btn-consultation" routerLink="/doctors" (click)="closeMobileMenu()">
-      Start Consultation
+      <i class="bi bi-calendar-check"></i> Start Consultation
     </button>
 
-    <!-- إذا لم يكن مسجل دخول - عرض Login -->
-    <a *ngIf="!isLoggedIn" routerLink="/login" routerLinkActive="active" (click)="closeMobileMenu()">Login</a>
+    <!-- User Info Section -->
+    <div *ngIf="isLoggedIn" class="mobile-user-info">
+      <div class="user-badge">
+        <i class="bi bi-person-circle"></i>
+        <span>{{ currentUser?.name || currentUser?.email || 'User' }}</span>
+        <span class="user-role" *ngIf="isPharmacist">Pharmacist</span>
+        <span class="user-role" *ngIf="isDoctor">Doctor</span>
+        <span class="user-role" *ngIf="isCustomer">Customer</span>
+      </div>
+    </div>
 
-    <!-- إذا كان مسجل دخول - عرض Logout -->
+    <!-- Login Link - عند عدم تسجيل الدخول -->
+    <a *ngIf="!isLoggedIn" routerLink="/login" routerLinkActive="active" (click)="closeMobileMenu()">
+      <i class="bi bi-box-arrow-in-right"></i> Login
+    </a>
+
+    <!-- Logout Button - عند تسجيل الدخول -->
     <button *ngIf="isLoggedIn" class="logout-btn" (click)="logout()">
-      {{ currentUser?.name || currentUser?.email || 'User' }} - Logout
+      <i class="bi bi-box-arrow-right"></i> Logout
     </button>
   </div>
 </nav>

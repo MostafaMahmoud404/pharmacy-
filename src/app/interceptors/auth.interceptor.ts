@@ -34,6 +34,9 @@ export class AuthInterceptor implements HttpInterceptor {
       req = req.clone({ setHeaders: { 'Content-Type': 'application/json' } });
     }
 
+    // إضافة withCredentials لدعم httpOnly cookies
+    req = req.clone({ withCredentials: true });
+
     // إرسال الطلب ومعالجة الأخطاء (مثل 401)
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {

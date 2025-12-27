@@ -1,3 +1,5 @@
+// src/app/app.module.ts (Fixed - No Duplicates)
+
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -12,23 +14,18 @@ import { AppComponent } from './app.component';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { PharmacistDashboardComponent } from './components/pharmacist-dashboard/pharmacist-dashboard.component';
-import { UserDashboardComponent } from './components/user-dashboard/user-dashboard.component'; // ✅ Add this
-import { ConsultComponent } from './components/consult/consult.component';
+import { UserDashboardComponent } from './components/user-dashboard/user-dashboard.component';
+import { ConsultationComponent } from './components/consultation/consultation.component';
 import { DoctorsComponent } from './components/doctors/doctors.component';
 import { HeroSectionComponent } from './components/herosection/herosection.component';
 import { HomeComponent } from './components/home/home.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { PharmacyComponent } from './components/pharmacy/pharmacy.component';
+import { DoctorDashboardComponent } from './components/doctor-dashboard/doctor-dashboard.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout/dashboard-layout.component';
-import { DoctorDashboardComponent } from './components/doctor-dashboard/doctor-dashboard.component';
-import { AvailabilityComponent } from './components/doctor-dashboard/availability/availability.component';
-import { DashboardMainComponent } from './components/doctor-dashboard/dashboard-main/dashboard-main.component';
-import { MyConsultationsComponent } from './components/doctor-dashboard/my-consultations/my-consultations.component';
-import { ProfileComponent } from './components/doctor-dashboard/profile/profile.component';
-import { SettingsComponent } from './components/doctor-dashboard/settings/settings.component';
-import { StatsCardsComponent } from './components/doctor-dashboard/stats-cards/stats-cards.component';
-import { UpcomingConsultationsComponent } from './components/doctor-dashboard/upcoming-consultations/upcoming-consultations.component';
+import { ProductManagementComponent } from './components/product-management/product-management.component';
+import { ProductsPageComponent } from './components/products-page/products-page.component';
 
 // Services
 import { AuthService } from './services/auth.service';
@@ -36,6 +33,9 @@ import { PharmacistService } from './services/pharmacist.service';
 import { DoctorService } from './services/doctor.service';
 import { DashboardService } from './services/dashboard.service';
 import { UserService } from './services/user.service';
+import { ProductService } from './services/products.service';
+import { AdminService } from './services/admin.service';
+import { ConsultationService } from './services/consultation.service';
 
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
@@ -46,34 +46,41 @@ import { PharmacistGuard } from './guards/pharmacist.guard';
 import { CustomerGuard } from './guards/customer.guard';
 import { DoctorGuard } from './guards/doctor.guard';
 
+// Pipes
+import { FilterPipe } from './pipes/filter.pipe';
+import { ProductFormComponent } from './components/product-form/product-form.component';
+import { AdminDashboardComponent } from './components/admin-dashboard/admin-dashboard.component';
+import { AboutComponent } from './components/about/about.component';
+import { CartComponent } from './components/cart/cart.component';
+import { CheckoutComponent } from './components/checkout/checkout.component';
+
 @NgModule({
   declarations: [
     AppComponent,
     LoginComponent,
     RegisterComponent,
     PharmacistDashboardComponent,
-    UserDashboardComponent, // ✅ Add this
-    ConsultComponent,
+    UserDashboardComponent,
+    ConsultationComponent,
     DoctorsComponent,
     HeroSectionComponent,
     HomeComponent,
     NavbarComponent,
     PharmacyComponent,
-    FooterComponent
-    ,
-    DoctorDashboardComponent
+    DoctorDashboardComponent,
+    FooterComponent,
+    ProductManagementComponent,
+    ProductsPageComponent,
+    FilterPipe,
+    ProductFormComponent,
+    AdminDashboardComponent,
+    AboutComponent,
+    CartComponent,
+    CheckoutComponent
   ],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    DashboardLayoutComponent,
-    AvailabilityComponent,
-    DashboardMainComponent,
-    MyConsultationsComponent,
-    ProfileComponent,
-    SettingsComponent,
-    StatsCardsComponent,
-    UpcomingConsultationsComponent,
     AppRoutingModule,
     ReactiveFormsModule,
     FormsModule,
@@ -86,6 +93,9 @@ import { DoctorGuard } from './guards/doctor.guard';
     DoctorService,
     DashboardService,
     UserService,
+    ProductService,
+    AdminService,
+    ConsultationService,
     AuthGuard,
     PharmacistGuard,
     CustomerGuard,

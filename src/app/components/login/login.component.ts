@@ -24,7 +24,7 @@ export class LoginComponent implements OnInit {
   ) {
     // إذا كان المستخدم مسجل دخول بالفعل، عيد توجيهه للصفحة الرئيسية
     if (this.authService.currentUserValue) {
-      this.router.navigate(['/home']);
+      this.router.navigate(['/admin-dashboard']);
     }
   }
 
@@ -36,7 +36,7 @@ export class LoginComponent implements OnInit {
     });
 
     // الحصول على return url من route parameters أو default لـ '/home'
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/admin-dashboard';
   }
 
   // سهولة الوصول للـ form controls

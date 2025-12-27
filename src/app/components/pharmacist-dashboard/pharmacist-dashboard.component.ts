@@ -1,4 +1,4 @@
-// src/app/components/pharmacist-dashpoard/pharmacist-dashpoard.component.ts
+// src/app/components/pharmacist-dashboard/pharmacist-dashboard.component.ts
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
@@ -285,10 +285,24 @@ export class PharmacistDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Navigate to add new product page
+   */
+  goToAddProduct(): void {
+    this.router.navigate(['/pharmacist-dashboard/products/add']);
+  }
+
+  /**
+   * Navigate to products management page
+   */
+  goToProductsManagement(): void {
+    this.router.navigate(['/pharmacist-dashboard/products']);
+  }
+
+  /**
    * Update product stock
    */
   updateProductStock(product: Product): void {
-    this.router.navigate(['/pharmacist-dashboard/inventory/edit', product._id]);
+    this.router.navigate(['/pharmacist-dashboard/products/edit', product._id]);
   }
 
   /**

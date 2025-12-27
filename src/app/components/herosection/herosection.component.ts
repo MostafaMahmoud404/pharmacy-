@@ -23,7 +23,7 @@ export class HeroSectionComponent {
   constructor(private router: Router) {}
 
   onStartConsultation() {
-    this.router.navigate(['/doctors']);
+    this.router.navigate(['/consultation']);
   }
 
   onBuyMedications() {

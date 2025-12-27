@@ -1,0 +1,302 @@
+<!-- consultation.component.html -->
+
+<div class="consultation-page">
+  <!-- Enhanced Header -->
+  <div class="consultation-header">
+    <div class="header-background">
+      <div class="animated-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+      </div>
+    </div>
+
+    <div class="header-content">
+      <div class="header-badge">
+        <span class="badge-pulse"></span>
+        <span>✨ Professional Medical Consultations</span>
+      </div>
+
+      <h1>
+        Book Your
+        <span class="highlight-text">Medical Consultation</span>
+        <br />with Top Doctors
+      </h1>
+
+      <p>
+        Connect with verified healthcare professionals through video, audio, or chat consultations.
+        Get expert medical advice from the comfort of your home, available 24/7.
+      </p>
+
+      <!-- Quick Stats -->
+      <div class="header-stats">
+        <div class="stat-box">
+          <div class="stat-icon">👨‍⚕️</div>
+          <div class="stat-content">
+            <div class="stat-number">500+</div>
+            <div class="stat-label">Doctors</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-content">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Available</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon">✓</div>
+          <div class="stat-content">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Verified</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-content">
+            <div class="stat-number">4.8</div>
+            <div class="stat-label">Rating</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decorative Icons -->
+      <div class="floating-pills">
+        <span class="pill pill-1">🩺</span>
+        <span class="pill pill-2">💊</span>
+        <span class="pill pill-3">💉</span>
+      </div>
+    </div>
+
+    <!-- Wave Separator -->
+    <div class="header-wave">
+      <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M0 0L60 10C120 20 240 40 360 46.7C480 53 600 47 720 43.3C840 40 960 40 1080 46.7C1200 53 1320 67 1380 73.3L1440 80V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V0Z"
+          fill="#f5f7fb" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="consultation-container">
+    <!-- Sidebar Filters -->
+    <aside class="filters-sidebar" [class.open]="sidebarOpen">
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <h2>🔍 Filters</h2>
+          <button class="reset-filters-btn" (click)="resetFilters()" title="Reset all filters">
+            ✕
+          </button>
+        </div>
+
+        <!-- Search Box -->
+        <div class="filter-group">
+          <label>Search Doctor</label>
+          <div class="search-box">
+            <input type="text" placeholder="Doctor name or specialty..."
+              (input)="onSearch($any($event.target).value)" class="search-input" />
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+
+        <!-- Specialty Filter -->
+        <div class="filter-group">
+          <label>🩺 Specialty</label>
+          <select [(ngModel)]="selectedSpecialty" (change)="applyFilters()" class="filter-select">
+            <option value="">All Specialties</option>
+            <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+          </select>
+        </div>
+
+        <!-- Consultation Type Filter -->
+        <div class="filter-group">
+          <label>💬 Consultation Type</label>
+          <select [(ngModel)]="selectedType" (change)="applyFilters()" class="filter-select">
+            <option value="">All Types</option>
+            <option value="video">Video Call</option>
+            <option value="audio">Audio Call</option>
+            <option value="chat">Text Chat</option>
+          </select>
+        </div>
+
+        <!-- Rating Filter -->
+        <div class="filter-group">
+          <label>⭐ Minimum Rating</label>
+          <select [(ngModel)]="selectedRating" (change)="applyFilters()" class="filter-select">
+            <option [value]="0">All Ratings</option>
+            <option [value]="3">⭐ 3+</option>
+            <option [value]="4">⭐ 4+</option>
+            <option [value]="4.5">⭐ 4.5+</option>
+          </select>
+        </div>
+
+        <!-- Price Range Filter -->
+        <div class="filter-group">
+          <label>💰 Max Price (EGP)</label>
+          <input type="number" [(ngModel)]="maxPrice" (change)="applyFilters()"
+            placeholder="Max price..." class="search-input" min="0" />
+        </div>
+
+        <!-- Availability Filter -->
+        <div class="filter-group checkbox">
+          <label>
+            <input type="checkbox" [(ngModel)]="onlyAvailable" (change)="applyFilters()" />
+            <span>Available Now</span>
+          </label>
+        </div>
+
+        <!-- Verified Filter -->
+        <div class="filter-group checkbox">
+          <label>
+            <input type="checkbox" [(ngModel)]="onlyVerified" (change)="applyFilters()" />
+            <span>Verified Only</span>
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="consultation-content">
+      <!-- Mobile Toggle Button -->
+      <button class="mobile-filter-toggle" (click)="toggleSidebar()">
+        {{ sidebarOpen ? '✕ Close Filters' : '☰ Show Filters' }}
+      </button>
+
+      <!-- Results Info -->
+      <div *ngIf="!isLoading && !error" class="results-info">
+        <p>Found <strong>{{ filteredDoctors.length }}</strong> doctors available</p>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading doctors...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !isLoading" class="error-state">
+        <p>❌ {{ error }}</p>
+        <button (click)="loadDoctors()" class="retry-btn">
+          Retry
+        </button>
+      </div>
+
+      <!-- Doctors Grid -->
+      <div *ngIf="!isLoading && !error && filteredDoctors.length > 0" class="doctors-grid">
+        <div *ngFor="let doctor of filteredDoctors" class="doctor-card"
+          [attr.data-available]="doctor.isAvailable">
+          <!-- Image Section -->
+          <div class="card-image">
+            <div class="image-content">
+              <img *ngIf="doctor.user?.profileImage" [src]="doctor.user.profileImage"
+                [alt]="doctor.user.name" class="doctor-photo" />
+              <div *ngIf="!doctor.user?.profileImage" class="doctor-placeholder">
+                {{ getInitials(doctor.user?.name) }}
+              </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="badges">
+              <div *ngIf="doctor.isVerified" class="badge verified">✓ Verified</div>
+              <div *ngIf="doctor.isAvailable" class="badge available">Available</div>
+              <div *ngIf="!doctor.isAvailable" class="badge unavailable">Busy</div>
+            </div>
+
+            <!-- Favorite Button -->
+            <button class="favorite-btn" (click)="toggleFavorite(doctor._id)"
+              [class.active]="isFavorite(doctor._id)" title="Add to favorites">
+              ♡
+            </button>
+          </div>
+
+          <!-- Card Content -->
+          <div class="card-content">
+            <!-- Doctor Name -->
+            <h3 class="doctor-name">{{ doctor.user?.name }}</h3>
+            <p class="doctor-specialty">{{ doctor.specialtyArabic || doctor.specialty }}</p>
+
+            <!-- Rating -->
+            <div class="rating">
+              <div class="stars">
+                <span *ngFor="let star of getStars(doctor.rating)" class="star" [class.filled]="star === 1">
+                  ★
+                </span>
+              </div>
+              <span class="rating-text">
+                {{ doctor.rating }} ({{ doctor.totalRatings || 0 }} reviews)
+              </span>
+            </div>
+
+            <!-- Info Items -->
+            <div class="card-info">
+              <div class="info-item">
+                <span class="icon">🎓</span>
+                <span>{{ doctor.yearsOfExperience || 0 }} years experience</span>
+              </div>
+
+              <div class="info-item">
+                <span class="icon">💼</span>
+                <span>{{ doctor.totalConsultations || 0 }} consultations</span>
+              </div>
+
+              <div class="info-item">
+                <span class="icon">📞</span>
+                <a [href]="'tel:' + doctor.user?.phone" class="phone-link">
+                  {{ doctor.user?.phone || 'N/A' }}
+                </a>
+              </div>
+            </div>
+
+            <!-- Consultation Types -->
+            <div class="consultation-types">
+              <span *ngFor="let type of doctor.consultationTypes" class="type-badge">
+                {{ getTypeIcon(type) }} {{ getTypeLabel(type) }}
+              </span>
+            </div>
+
+            <!-- Price -->
+            <div class="price-badge">
+              💰 {{ doctor.consultationFee }} EGP / session
+            </div>
+
+            <!-- Action Button -->
+            <button class="book-btn" (click)="bookConsultation(doctor._id)"
+              [disabled]="!doctor.isAvailable">
+              {{ doctor.isAvailable ? 'Book Now →' : 'Currently Unavailable' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="!isLoading && !error && filteredDoctors.length === 0" class="no-results">
+        <p>No doctors match your search criteria</p>
+        <button (click)="resetFilters()" class="reset-btn">
+          Reset Filters
+        </button>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="!isLoading && !error && filteredDoctors.length > 0 && totalPages > 1" class="pagination">
+        <button (click)="prevPage()" [disabled]="currentPage === 1" class="pagination-btn">
+          ← Previous
+        </button>
+
+        <div class="pagination-pages">
+          <button *ngFor="let page of getPaginationPages()" (click)="goToPage(page)"
+            [class.active]="page === currentPage" class="page-btn">
+            {{ page }}
+          </button>
+        </div>
+
+        <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+          Next →
+        </button>
+      </div>
+    </main>
+  </div>
+</div>

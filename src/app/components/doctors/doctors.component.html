@@ -1,1 +1,277 @@
-<p>doctors works!</p>
+<!-- ✅ doctors.component.html - English Version with Enhanced Cards
+     Path: src/app/components/doctors/doctors.component.html
+-->
+
+<div class="doctors-page">
+  <!-- Enhanced Header -->
+  <div class="page-header">
+    <div class="container">
+      <h1 class="page-title">Our Distinguished Doctors</h1>
+      <p class="page-subtitle">
+        Choose from the best certified doctors in all specialties and book your medical consultation with ease
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Search & Filters -->
+    <div class="filters-section">
+      <div class="filters-card">
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="searchDoctors()"
+            placeholder="Search for doctor by name or specialty..." class="search-input" />
+          <button class="search-btn" (click)="searchDoctors()">
+            <i class="fas fa-search"></i>
+            Search
+          </button>
+        </div>
+
+        <!-- Filter Options -->
+        <div class="filter-options">
+          <!-- Specialty Filter -->
+          <div class="filter-item">
+            <label>📋 Specialty</label>
+            <select [(ngModel)]="selectedSpecialty" (change)="searchDoctors()" class="filter-select">
+              <option value="">All Specialties</option>
+              <option *ngFor="let specialty of specialties" [value]="specialty">
+                {{ getSpecialtyArabic(specialty) }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Consultation Type Filter -->
+          <div class="filter-item">
+            <label>💬 Consultation Type</label>
+            <select [(ngModel)]="selectedConsultationType" (change)="searchDoctors()" class="filter-select">
+              <option value="">All Types</option>
+              <option *ngFor="let type of consultationTypes" [value]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Max Fee Filter -->
+          <div class="filter-item">
+            <label>💰 Max Price</label>
+            <input type="number" [(ngModel)]="maxFee" (change)="searchDoctors()" placeholder="e.g. 500"
+              class="filter-input" min="0" />
+          </div>
+
+          <!-- Min Rating Filter -->
+          <div class="filter-item">
+            <label>⭐ Min Rating</label>
+            <select [(ngModel)]="minRating" (change)="searchDoctors()" class="filter-select">
+              <option [value]="null">All</option>
+              <option [value]="4.5">⭐ 4.5+</option>
+              <option [value]="4">⭐ 4+</option>
+              <option [value]="3.5">⭐ 3.5+</option>
+              <option [value]="3">⭐ 3+</option>
+            </select>
+          </div>
+
+          <!-- Clear Filters Button -->
+          <button class="clear-filters-btn" (click)="clearFilters()">
+            <i class="fas fa-times"></i>
+            Clear Filters
+          </button>
+        </div>
+
+        <!-- Results Info & View Toggle -->
+        <div class="results-info">
+          <span class="results-count">
+            <strong>{{ filteredDoctors.length }}</strong> Doctors Available
+          </span>
+
+          <div class="view-toggle">
+            <button [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" class="view-btn" title="Grid View">
+              <i class="fas fa-th"></i>
+            </button>
+            <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" class="view-btn" title="List View">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading doctors...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="error-container">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{ error }}</p>
+      <button (click)="loadDoctors()" class="retry-btn">
+        <i class="fas fa-redo"></i>
+        Retry
+      </button>
+    </div>
+
+    <!-- Doctors Section -->
+    <div *ngIf="!loading && !error" class="doctors-section">
+      <!-- No Results -->
+      <div *ngIf="filteredDoctors.length === 0" class="no-results">
+        <i class="fas fa-user-md"></i>
+        <h3>No Doctors Found</h3>
+        <p>Try changing your search criteria or clear filters</p>
+        <button (click)="clearFilters()" class="btn-primary">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
+      </div>
+
+      <!-- Grid View -->
+      <div *ngIf="viewMode === 'grid' && filteredDoctors.length > 0" class="doctors-grid">
+        <div *ngFor="let doctor of filteredDoctors" class="doctor-card" (click)="viewDoctorDetails(doctor._id)">
+          <!-- Doctor Image -->
+          <div class="doctor-image">
+            <img [src]="doctor.user.profileImage || getDefaultImage(doctor.user.name)" [alt]="doctor.user.name"
+              (error)="onImageError($event)" />
+
+            <!-- Badges -->
+            <span class="verified-badge" *ngIf="doctor.isVerified">
+              <i class="fas fa-check-circle"></i>
+            </span>
+            <span class="available-badge" *ngIf="doctor.isAvailable">
+              Available
+            </span>
+          </div>
+
+          <!-- Doctor Info -->
+          <div class="doctor-info">
+            <!-- Name & Specialty -->
+            <h3 class="doctor-name">{{ doctor.user.name }}</h3>
+            <p class="doctor-specialty">{{ doctor.specialtyArabic }}</p>
+
+            <!-- Rating -->
+            <div class="rating">
+              <div class="stars">
+                <i *ngFor="let star of getRatingStars(doctor.rating.average)" class="fas fa-star"
+                  [class.filled]="star"></i>
+              </div>
+              <span class="rating-text">
+                {{ doctor.rating.average.toFixed(1) }} ({{ doctor.rating.count }})
+              </span>
+            </div>
+
+            <!-- Experience & Consultations -->
+            <div class="doctor-meta">
+              <span class="meta-item">
+                <i class="fas fa-briefcase"></i>
+                {{ doctor.experience }} Years
+              </span>
+              <span class="meta-item">
+                <i class="fas fa-users"></i>
+                {{ doctor.totalConsultations }} Consultations
+              </span>
+            </div>
+
+            <!-- Consultation Types -->
+            <div class="consultation-types">
+              <span *ngFor="let type of doctor.consultationTypes" class="type-badge">
+                {{ getConsultationTypeArabic(type) }}
+              </span>
+            </div>
+
+            <!-- Fee & Book Button -->
+            <div class="card-footer">
+              <div class="fee-info">
+                <span class="fee-label">From</span>
+                <span class="fee-amount">{{ formatCurrency(doctor.consultationFee) }}</span>
+              </div>
+              <button class="btn-book" (click)="bookConsultation(doctor); $event.stopPropagation()"
+                [disabled]="!doctor.isAvailable">
+                <i class="fas fa-calendar-check"></i>
+                Book Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div *ngIf="viewMode === 'list' && filteredDoctors.length > 0" class="doctors-list">
+        <div *ngFor="let doctor of filteredDoctors" class="doctor-list-item" (click)="viewDoctorDetails(doctor._id)">
+          <!-- Image -->
+          <img [src]="doctor.user.profileImage || getDefaultImage(doctor.user.name)" [alt]="doctor.user.name"
+            class="list-image" (error)="onImageError($event)" />
+
+          <!-- Info -->
+          <div class="list-info">
+            <div class="list-header">
+              <h3>{{ doctor.user.name }}</h3>
+              <span class="verified-badge" *ngIf="doctor.isVerified">
+                <i class="fas fa-check-circle"></i>
+                Verified
+              </span>
+              <span class="available-badge" *ngIf="doctor.isAvailable">
+                Available Now
+              </span>
+            </div>
+
+            <p class="specialty">{{ doctor.specialtyArabic }}</p>
+
+            <!-- Rating -->
+            <div class="rating">
+              <div class="stars">
+                <i *ngFor="let star of getRatingStars(doctor.rating.average)" class="fas fa-star"
+                  [class.filled]="star"></i>
+              </div>
+              <span class="rating-text">
+                {{ doctor.rating.average.toFixed(1) }} ({{ doctor.rating.count }} reviews)
+              </span>
+            </div>
+
+            <div class="list-meta">
+              <span>
+                <i class="fas fa-briefcase"></i>
+                {{ doctor.experience }} Years Experience
+              </span>
+              <span>
+                <i class="fas fa-users"></i>
+                {{ doctor.totalConsultations }} Consultations
+              </span>
+            </div>
+
+            <div class="consultation-types">
+              <span *ngFor="let type of doctor.consultationTypes" class="type-badge">
+                {{ getConsultationTypeArabic(type) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="list-actions">
+            <div class="fee">{{ formatCurrency(doctor.consultationFee) }}</div>
+            <button class="btn-book" (click)="bookConsultation(doctor); $event.stopPropagation()"
+              [disabled]="!doctor.isAvailable">
+              <i class="fas fa-calendar-check"></i>
+              Book Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="totalPages > 1 && filteredDoctors.length > 0" class="pagination">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <button *ngFor="let page of getPageNumbers()" class="page-btn" [class.active]="page === currentPage"
+          (click)="changePage(page)">
+          {{ page }}
+        </button>
+
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

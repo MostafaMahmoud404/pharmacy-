@@ -15,19 +15,32 @@ export class DoctorGuard implements CanActivate {
     const token = this.authService.getToken();
     const user = this.authService.currentUserValue;
 
+    console.log('🔐 DoctorGuard - Checking access');
+    console.log('   Token exists:', !!token);
+    console.log('   User:', user?.email);
+    console.log('   User Role:', user?.role);
+    console.log('   URL:', state.url);
+
     if (!token || !user) {
-      // Not authenticated
+      console.log('❌ DoctorGuard - Not authenticated (no token or user)');
       this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     }
 
+    // Normalize role - remove whitespace and convert to lowercase
+    const userRole = (user.role || '').trim().toLowerCase();
+
+    console.log('   Normalized Role:', userRole);
+
     // Allow doctors and admins
-    if (user.role === 'doctor' || user.role === 'admin') {
+    if (userRole === 'doctor' || userRole === 'admin') {
+      console.log('✅ DoctorGuard - Access GRANTED (Doctor or Admin)');
       return true;
     }
 
     // Unauthorized role
-    this.router.navigate(['/login']);
+    console.error(`❌ DoctorGuard - Access DENIED. User role is: "${userRole}" (expected: "doctor" or "admin")`);
+    this.router.navigate(['/']);
     return false;
   }
 }

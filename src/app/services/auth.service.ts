@@ -56,8 +56,7 @@ export interface LoginData {
   providedIn: 'root'
 })
 export class AuthService {
-  // ✅ تأكد أن environment.apiUrl هو http://localhost:3000 بدون /api
-  private apiUrl = `${environment.apiUrl}/api/auth`;
+  private apiUrl = `${environment.apiUrl}/auth`;
   private readonly STORAGE_TOKEN_KEY = 'token';
   private readonly STORAGE_USER_KEY = 'currentUser';
 

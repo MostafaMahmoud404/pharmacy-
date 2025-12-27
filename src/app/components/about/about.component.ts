@@ -1,0 +1,337 @@
+// ============================================
+// about.component.ts
+// ============================================
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+
+interface TeamMember {
+  name: string;
+  role: string;
+  image: string;
+  bio: string;
+}
+
+interface Statistic {
+  icon: string;
+  value: string;
+  label: string;
+}
+
+interface Value {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+@Component({
+  selector: 'app-about',
+  templateUrl: './about.component.html',
+  styleUrls: ['./about.component.css']
+})
+export class AboutComponent implements OnInit {
+
+  statistics: Statistic[] = [
+    { icon: '👨‍⚕️', value: '500+', label: 'Expert Doctors' },
+    { icon: '😊', value: '50K+', label: 'Happy Patients' },
+    { icon: '🏥', value: '25+', label: 'Specialties' },
+    { icon: '⭐', value: '4.9', label: 'Average Rating' }
+  ];
+
+  values: Value[] = [
+    {
+      icon: '🎯',
+      title: 'Patient First',
+      description: 'Your health and well-being are our top priority. We put patients at the center of everything we do.'
+    },
+    {
+      icon: '🔒',
+      title: 'Privacy & Security',
+      description: 'Your medical information is protected with bank-level encryption and strict privacy protocols.'
+    },
+    {
+      icon: '✨',
+      title: 'Quality Care',
+      description: 'We ensure the highest standards of medical care through verified, experienced healthcare professionals.'
+    },
+    {
+      icon: '🚀',
+      title: 'Innovation',
+      description: 'We leverage cutting-edge technology to make healthcare more accessible and efficient for everyone.'
+    },
+    {
+      icon: '💙',
+      title: 'Compassion',
+      description: 'We treat every patient with empathy, respect, and the dignity they deserve.'
+    },
+    {
+      icon: '🤝',
+      title: 'Trust',
+      description: 'Building lasting relationships through transparency, reliability, and consistent quality of service.'
+    }
+  ];
+
+  // teamMembers: TeamMember[] = [
+  //    {
+  //   name: 'Mostafa Mahmoud',
+  //   role: 'Full-Stack Engineer',
+  //   image: 'MM',
+  //   bio: 'Passionate about building scalable healthcare solutions and innovative features'
+  // },
+  // {
+  //   name: 'Dyaa Ata',
+  //   role: 'Full-Stack Engineer',
+  //   image: 'DA',
+  //   bio: 'Focused on creating secure and efficient telemedicine platforms'
+  // },
+  // {
+  //   name: 'Farah Mohammed',
+  //   role: 'Full-Stack Engineer',
+  //   image: 'FM',
+  //   bio: 'Dedicated to delivering seamless user experiences in healthcare technology'
+  // },
+  // {
+  //   name: 'Hadeer Uosry',
+  //   role: 'Full-Stack Engineer',
+  //   image: 'HY',
+  //   bio: 'Committed to making healthcare accessible through innovative software solutions'
+  // },
+  // {
+  //   name: 'Adly Atef',
+  //   role: 'Full-Stack Engineer',
+  //   image: 'AA',
+  //   bio: 'Specialized in building robust and reliable medical platform infrastructure'
+  // }
+  // ];
+
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {}
+
+  navigateToDoctors(): void {
+    this.router.navigate(['/doctors']);
+  }
+
+  navigateToLogin(): void {
+    this.router.navigate(['/login']);
+  }
+}
+
+// ============================================
+// about.component.html
+// ============================================
+/*
+<div class="about-page">
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1 class="hero-title">About Our Platform</h1>
+          <p class="hero-subtitle">
+            Revolutionizing healthcare delivery through technology,
+            making quality medical care accessible to everyone, anywhere.
+          </p>
+          <div class="hero-buttons">
+            <button class="btn-primary" (click)="navigateToDoctors()">
+              Find a Doctor
+            </button>
+            <button class="btn-secondary" (click)="navigateToLogin()">
+              Join Us
+            </button>
+          </div>
+        </div>
+        <div class="hero-image">
+          <div class="image-placeholder">
+            <span class="image-icon">🏥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Our Story Section -->
+  <section class="story-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Our Story</span>
+        <h2 class="section-title">How We Started</h2>
+      </div>
+      <div class="story-content">
+        <div class="story-text">
+          <p>
+            Founded in 2020, our telemedicine platform was born from a simple yet powerful idea:
+            healthcare should be accessible to everyone, regardless of location or circumstances.
+          </p>
+          <p>
+            What started as a small team of passionate healthcare professionals and tech enthusiasts
+            has grown into a comprehensive digital health ecosystem serving thousands of patients daily.
+          </p>
+          <p>
+            We've built more than just a platform – we've created a community where patients can
+            connect with trusted healthcare providers, access quality medications, and manage their
+            health journey with confidence.
+          </p>
+        </div>
+        <div class="story-highlights">
+          <div class="highlight-card">
+            <h3>2020</h3>
+            <p>Platform Founded</p>
+          </div>
+          <div class="highlight-card">
+            <h3>2021</h3>
+            <p>Reached 10K Users</p>
+          </div>
+          <div class="highlight-card">
+            <h3>2023</h3>
+            <p>50K+ Consultations</p>
+          </div>
+          <div class="highlight-card">
+            <h3>2024</h3>
+            <p>500+ Doctors</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission & Vision Section -->
+  <section class="mission-section">
+    <div class="container">
+      <div class="mission-grid">
+        <div class="mission-card">
+          <div class="mission-icon">🎯</div>
+          <h3>Our Mission</h3>
+          <p>
+            To democratize healthcare by providing instant access to qualified medical
+            professionals and essential health services through innovative technology solutions.
+          </p>
+        </div>
+        <div class="mission-card">
+          <div class="mission-icon">👁️</div>
+          <h3>Our Vision</h3>
+          <p>
+            To become the most trusted healthcare platform in the region, where every individual
+            has seamless access to quality medical care at their fingertips.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistics Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div *ngFor="let stat of statistics" class="stat-card">
+          <div class="stat-icon">{{ stat.icon }}</div>
+          <div class="stat-value">{{ stat.value }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Values Section -->
+  <section class="values-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Our Values</span>
+        <h2 class="section-title">What We Stand For</h2>
+        <p class="section-description">
+          These core principles guide everything we do and every decision we make
+        </p>
+      </div>
+      <div class="values-grid">
+        <div *ngFor="let value of values" class="value-card">
+          <div class="value-icon">{{ value.icon }}</div>
+          <h3>{{ value.title }}</h3>
+          <p>{{ value.description }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team Section (Optional) -->
+  <section class="team-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Our Team</span>
+        <h2 class="section-title">Meet Our Leadership</h2>
+        <p class="section-description">
+          Experienced professionals dedicated to transforming healthcare
+        </p>
+      </div>
+      <div class="team-grid">
+        <div *ngFor="let member of teamMembers" class="team-card">
+          <div class="team-avatar">{{ member.image }}</div>
+          <h3>{{ member.name }}</h3>
+          <p class="team-role">{{ member.role }}</p>
+          <p class="team-bio">{{ member.bio }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Choose Us Section -->
+  <section class="why-us-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Why Choose Us</span>
+        <h2 class="section-title">The Benefits You'll Enjoy</h2>
+      </div>
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-icon">⚡</div>
+          <h3>Instant Access</h3>
+          <p>Connect with doctors in minutes, not days. No more waiting rooms or long queues.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">💰</div>
+          <h3>Affordable Care</h3>
+          <p>Quality healthcare at transparent, competitive prices. No hidden fees or surprises.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">📱</div>
+          <h3>Convenient</h3>
+          <p>Consult from anywhere using your phone, tablet, or computer. Healthcare on your terms.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">🏆</div>
+          <h3>Top Doctors</h3>
+          <p>Access to verified, experienced healthcare professionals across all specialties.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">🔐</div>
+          <h3>Secure & Private</h3>
+          <p>Your health data is encrypted and protected with industry-leading security measures.</p>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon">📋</div>
+          <h3>Complete Records</h3>
+          <p>All your medical history, prescriptions, and reports in one secure place.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Experience Better Healthcare?</h2>
+        <p>Join thousands of satisfied patients who trust us with their health</p>
+        <div class="cta-buttons">
+          <button class="btn-cta-primary" (click)="navigateToDoctors()">
+            Book a Consultation
+          </button>
+          <button class="btn-cta-secondary" (click)="navigateToLogin()">
+            Create Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+*/

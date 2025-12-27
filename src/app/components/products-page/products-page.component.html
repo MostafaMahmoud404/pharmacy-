@@ -1,0 +1,334 @@
+<!-- ✅ products-page.component.html - Enhanced Header
+     المسار: src/app/components/products-page/products-page.component.html
+-->
+
+<div class="products-page">
+  <!-- Enhanced Header -->
+  <div class="page-hero">
+    <div class="hero-background">
+      <div class="animated-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <div class="header-badge">
+        <span class="badge-pulse"></span>
+        <span>✨ Trusted Healthcare Platform</span>
+      </div>
+
+      <h1 class="hero-title">
+        Discover Premium
+        <span class="highlight-text">Products</span>
+        <br />for Your Health
+      </h1>
+
+      <p class="hero-subtitle">
+        Browse thousands of verified pharmaceutical products, compare prices, and get your medications
+        delivered to your doorstep within hours. Quality assured and certified.
+      </p>
+
+      <!-- Quick Stats -->
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="stat-icon">📦</div>
+          <div class="stat-content">
+            <div class="stat-number">500+</div>
+            <div class="stat-label">Products</div>
+          </div>
+        </div>
+
+        <div class="hero-stat">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-content">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Available</div>
+          </div>
+        </div>
+
+        <div class="hero-stat">
+          <div class="stat-icon">✓</div>
+          <div class="stat-content">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Verified</div>
+          </div>
+        </div>
+
+        <div class="hero-stat">
+          <div class="stat-icon">🚚</div>
+          <div class="stat-content">
+            <div class="stat-number">Fast</div>
+            <div class="stat-label">Delivery</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decorative Pills -->
+      <div class="floating-pills">
+        <span class="pill pill-1">💊</span>
+        <span class="pill pill-2">💉</span>
+        <span class="pill pill-3">🩺</span>
+      </div>
+    </div>
+
+    <!-- Wave Separator -->
+    <div class="header-wave">
+      <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M0 0L60 10C120 20 240 40 360 46.7C480 53 600 47 720 43.3C840 40 960 40 1080 46.7C1200 53 1320 67 1380 73.3L1440 80V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V0Z"
+          fill="#f5f7fb" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="search-filter-container">
+    <!-- Sidebar Filters -->
+    <aside class="filters-sidebar" [class.open]="sidebarOpen">
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <h2>🔍 Filters</h2>
+          <button class="btn-reset-filters" (click)="resetFilters()" title="Reset all filters">
+            <span>✕</span>
+          </button>
+        </div>
+
+        <!-- Search Box -->
+        <div class="search-section">
+          <label>Search Product</label>
+          <div class="search-box-wrapper">
+            <input type="text" placeholder="Product name..." [(ngModel)]="searchTerm" (input)="onSearch()"
+              class="search-input" />
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filters-section">
+          <div class="filter-card">
+            <label class="filter-label">
+              <span class="label-icon">📁</span>
+              <span>Category</span>
+            </label>
+            <select class="filter-select" [(ngModel)]="selectedCategory" (change)="onCategoryChange()">
+              <option value="">All Categories</option>
+              <option value="Medications">Medications</option>
+              <option value="Vitamins & Supplements">Vitamins & Supplements</option>
+              <option value="Personal Care">Personal Care</option>
+              <option value="Medical Equipment">Medical Equipment</option>
+              <option value="Baby & Mother Care">Baby & Mother Care</option>
+              <option value="Skin Care">Skin Care</option>
+              <option value="Herbal & Natural">Herbal & Natural</option>
+            </select>
+          </div>
+
+          <!-- Price Filter -->
+          <div class="filter-card">
+            <label class="filter-label">
+              <span class="label-icon">💰</span>
+              <span>Price Range</span>
+            </label>
+            <div class="price-inputs">
+              <input type="number" class="price-input" placeholder="Min" [(ngModel)]="priceRange.min"
+                (change)="onPriceChange()" />
+              <span class="price-separator">-</span>
+              <input type="number" class="price-input" placeholder="Max" [(ngModel)]="priceRange.max"
+                (change)="onPriceChange()" />
+            </div>
+          </div>
+
+          <!-- Prescription Filter -->
+          <div class="filter-card">
+            <label class="filter-checkbox">
+              <input type="checkbox" [(ngModel)]="requiresPrescriptionFilter" (change)="onFilterChange()" />
+              <span class="checkbox-label">
+                <span class="label-icon">💊</span>
+                <span>Prescription Required</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="products-section">
+      <!-- Mobile Toggle Button -->
+      <button class="mobile-filter-toggle" (click)="toggleSidebar()">
+        {{ sidebarOpen ? '✕ Close Filters' : '☰ Show Filters' }}
+      </button>
+
+      <!-- Products Header -->
+      <div *ngIf="!isLoading" class="products-header">
+        <h2 class="section-title">
+          <span class="title-icon">📦</span>
+          <span>Available Products</span>
+        </h2>
+        <div class="products-count" *ngIf="products.length > 0">
+          <span class="count-number">{{ products.length }}</span>
+          <span class="count-label">products found</span>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-container">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p class="loading-text">Loading products...</p>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      <div *ngIf="!isLoading && products.length > 0" class="products-grid">
+        <div *ngFor="let product of products" class="product-card" (click)="viewProduct(product._id)">
+          <!-- Product Image -->
+          <div class="product-image-wrapper">
+            <img [src]="product.images?.[0]?.url || 'assets/placeholder.png'" [alt]="product.name"
+              class="product-image" />
+
+            <!-- Badges -->
+            <div class="product-badges">
+              <span class="badge badge-featured" *ngIf="product.isFeatured">
+                <span class="badge-icon">⭐</span>
+                <span>Featured</span>
+              </span>
+              <span class="badge badge-prescription" *ngIf="product.requiresPrescription">
+                <span class="badge-icon">💊</span>
+                <span>Rx</span>
+              </span>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+              <button class="quick-btn" (click)="$event.stopPropagation()" title="Quick View">👁️</button>
+              <button class="quick-btn" (click)="$event.stopPropagation()" title="Add to Favorites">❤️</button>
+            </div>
+          </div>
+
+          <!-- Product Info -->
+          <div class="product-content">
+            <div class="product-category">{{ product.category }}</div>
+
+            <h3 class="product-title">{{ product.name }}</h3>
+            <p class="product-title-ar">{{ product.nameArabic }}</p>
+
+            <!-- Product Meta -->
+            <div class="product-meta">
+              <div class="meta-item" *ngIf="product.dosageForm">
+                <span class="meta-icon">💊</span>
+                <span>{{ product.dosageForm }}</span>
+              </div>
+              <div class="meta-item" *ngIf="product.strength">
+                <span class="meta-icon">⚡</span>
+                <span>{{ product.strength }}</span>
+              </div>
+            </div>
+
+            <!-- Manufacturer -->
+            <div class="product-manufacturer" *ngIf="product.manufacturer">
+              <span class="manufacturer-icon">🏭</span>
+              <span>{{ product.manufacturer }}</span>
+            </div>
+
+            <!-- Rating -->
+            <div class="product-rating" *ngIf="product.rating">
+              <div class="stars">
+                <span *ngFor="let i of [1,2,3,4,5]" class="star" [class.filled]="i <= product.rating">★</span>
+              </div>
+              <span class="rating-value">{{ product.rating }}/5</span>
+            </div>
+
+            <!-- Pricing -->
+            <div class="product-pricing">
+              <div class="price-group">
+                <span class="price-original" *ngIf="product.discountPrice">
+                  {{ formatCurrency(product.price) }}
+                </span>
+                <span class="price-current">
+                  {{ formatCurrency(product.discountPrice || product.price) }}
+                </span>
+              </div>
+              <div class="discount-badge" *ngIf="product.discountPrice">
+                <span>{{ Math.round((1 - product.discountPrice / product.price) * 100) }}% OFF</span>
+              </div>
+            </div>
+
+            <!-- Stock Status -->
+            <div class="product-stock">
+              <span
+                [class]="'stock-indicator ' + (product.stock > 0 ? (product.stock > 10 ? 'in-stock' : 'low-stock') : 'out-of-stock')">
+                <span class="stock-dot"></span>
+                <span class="stock-text">
+                  {{ product.stock > 0 ? (product.stock > 10 ? 'In Stock' : 'Low Stock') : 'Out of Stock' }}
+                </span>
+                <span class="stock-count" *ngIf="product.stock > 0">({{ product.stock }})</span>
+              </span>
+            </div>
+
+            <!-- Add to Cart Button -->
+            <button class="btn-add-to-cart" [disabled]="product.stock === 0" (click)="addToCart($event, product)">
+              <span class="btn-icon">🛒</span>
+              <span class="btn-text">{{ product.stock > 0 ? 'Add to Cart' : 'Out of Stock' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="!isLoading && products.length === 0" class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3 class="empty-title">No Products Found</h3>
+        <p class="empty-message">Try adjusting your search or filters</p>
+        <button class="btn-primary" (click)="resetFilters()">
+          <span>🔄</span>
+          <span>View All Products</span>
+        </button>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-wrapper" *ngIf="!isLoading && products.length > 0 && pagination && pagination.pages > 1">
+        <button class="btn-pagination" [disabled]="pagination.page === 1" (click)="previousPage()">
+          <span class="btn-arrow">←</span>
+          <span>Previous</span>
+        </button>
+
+        <div class="pagination-info">
+          <span class="page-current">{{ pagination.page }}</span>
+          <span class="page-separator">of</span>
+          <span class="page-total">{{ pagination.pages }}</span>
+        </div>
+
+        <button class="btn-pagination" [disabled]="pagination.page === pagination.pages" (click)="nextPage()">
+          <span>Next</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Features Section -->
+  <div class="features-section">
+    <div class="feature-card">
+      <div class="feature-icon">🚚</div>
+      <h4 class="feature-title">Fast Delivery</h4>
+      <p class="feature-text">Get your medicines delivered to your doorstep</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💯</div>
+      <h4 class="feature-title">Quality Assured</h4>
+      <p class="feature-text">All products are verified and certified</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h4 class="feature-title">Secure Payment</h4>
+      <p class="feature-text">Your transactions are safe and secure</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h4 class="feature-title">24/7 Support</h4>
+      <p class="feature-text">We're here to help you anytime</p>
+    </div>
+  </div>
+</div>

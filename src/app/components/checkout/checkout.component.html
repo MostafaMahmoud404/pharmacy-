@@ -1,0 +1,369 @@
+<!-- src/app/components/checkout/checkout.component.html -->
+
+<div class="checkout-container" *ngIf="!orderPlaced">
+  <!-- Header -->
+  <div class="checkout-header">
+    <button class="btn-back" (click)="backToCart()">
+      <i class="fas fa-arrow-right"></i>
+      Back to Cart
+    </button>
+    <h1 class="checkout-title">
+      <i class="fas fa-shopping-bag"></i>
+      Complete Order
+    </h1>
+  </div>
+
+  <!-- Progress Steps -->
+  <div class="progress-steps">
+    <div class="step" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+      <div class="step-number">
+        <span *ngIf="currentStep > 1">✓</span>
+        <span *ngIf="currentStep <= 1">1</span>
+      </div>
+      <div class="step-label">Shipping Info</div>
+    </div>
+
+    <div class="step-line" [class.active]="currentStep >= 2"></div>
+
+    <div class="step" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+      <div class="step-number">
+        <span *ngIf="currentStep > 2">✓</span>
+        <span *ngIf="currentStep <= 2">2</span>
+      </div>
+      <div class="step-label">Shipping Method</div>
+    </div>
+
+    <div class="step-line" [class.active]="currentStep >= 3"></div>
+
+    <div class="step" [class.active]="currentStep >= 3">
+      <div class="step-number">3</div>
+      <div class="step-label">Payment & Review</div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="checkout-content">
+    <!-- Left Side - Forms -->
+    <div class="checkout-forms">
+
+      <!-- Step 1: Shipping Information -->
+      <div class="form-section" *ngIf="currentStep === 1">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-map-marker-alt"></i>
+            Shipping Information
+          </h2>
+          <p class="section-subtitle">Enter delivery address</p>
+        </div>
+
+        <form [formGroup]="shippingForm" class="shipping-form">
+          <!-- Full Name & Phone -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input type="text" class="form-input" formControlName="fullName" placeholder="Enter your full name"
+                [class.error]="hasError('fullName')" />
+              <span class="error-message" *ngIf="hasError('fullName')">
+                {{ getErrorMessage('fullName') }}
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Phone Number *</label>
+              <input type="tel" class="form-input" formControlName="phone" placeholder="01xxxxxxxxx"
+                [class.error]="hasError('phone')" />
+              <span class="error-message" *ngIf="hasError('phone')">
+                {{ getErrorMessage('phone') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label">Email (Optional)</label>
+            <input type="email" class="form-input" formControlName="email" placeholder="example@email.com"
+              [class.error]="hasError('email')" />
+            <span class="error-message" *ngIf="hasError('email')">
+              {{ getErrorMessage('email') }}
+            </span>
+          </div>
+
+          <!-- Governorate & City -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Governorate *</label>
+              <select class="form-input" formControlName="governorate" [class.error]="hasError('governorate')">
+                <option value="">Select Governorate</option>
+                <option value="cairo">Cairo</option>
+                <option value="giza">Giza</option>
+                <option value="alexandria">Alexandria</option>
+                <option value="qalyubia">Qalyubia</option>
+                <option value="sharqia">Sharqia</option>
+                <option value="dakahlia">Dakahlia</option>
+              </select>
+              <span class="error-message" *ngIf="hasError('governorate')">
+                {{ getErrorMessage('governorate') }}
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">City *</label>
+              <input type="text" class="form-input" formControlName="city" placeholder="Enter city"
+                [class.error]="hasError('city')" />
+              <span class="error-message" *ngIf="hasError('city')">
+                {{ getErrorMessage('city') }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="form-group">
+            <label class="form-label">Detailed Address *</label>
+            <textarea class="form-input" formControlName="address" rows="3"
+              placeholder="Street, district, nearest landmark..." [class.error]="hasError('address')"></textarea>
+            <span class="error-message" *ngIf="hasError('address')">
+              {{ getErrorMessage('address') }}
+            </span>
+          </div>
+
+          <!-- Building, Floor, Apartment -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Building Number</label>
+              <input type="text" class="form-input" formControlName="building" placeholder="e.g: 12" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Floor</label>
+              <input type="text" class="form-input" formControlName="floor" placeholder="e.g: 3" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Apartment Number</label>
+              <input type="text" class="form-input" formControlName="apartment" placeholder="e.g: 5" />
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="form-label">Additional Notes</label>
+            <textarea class="form-input" formControlName="notes" rows="2"
+              placeholder="Any delivery notes..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 2: Shipping Method -->
+      <div class="form-section" *ngIf="currentStep === 2">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-truck"></i>
+            Shipping Method
+          </h2>
+          <p class="section-subtitle">Choose your preferred delivery method</p>
+        </div>
+
+        <div class="shipping-methods">
+          <div class="shipping-method" *ngFor="let method of shippingMethods"
+            [class.selected]="selectedShippingMethod === method.id" (click)="selectShippingMethod(method.id)">
+            <div class="method-icon">{{ method.icon }}</div>
+            <div class="method-info">
+              <h3 class="method-name">{{ method.name }}</h3>
+              <p class="method-duration">{{ method.duration }}</p>
+            </div>
+            <div class="method-price">
+              <span *ngIf="method.price > 0">{{ formatPrice(method.price) }}</span>
+              <span *ngIf="method.price === 0" class="free-badge">Free</span>
+            </div>
+            <div class="method-check">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Payment & Review -->
+      <div class="form-section" *ngIf="currentStep === 3">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-credit-card"></i>
+            Payment Method
+          </h2>
+          <p class="section-subtitle">Choose your preferred payment method</p>
+        </div>
+
+        <div class="payment-methods">
+          <div class="payment-method" *ngFor="let method of paymentMethods"
+            [class.selected]="selectedPaymentMethod === method.id" [class.disabled]="method.id !== 'cash'"
+            (click)="selectPaymentMethod(method.id)">
+            <div class="method-icon">{{ method.icon }}</div>
+            <div class="method-info">
+              <h3 class="method-name">
+                {{ method.name }}
+                <span class="coming-soon" *ngIf="method.id !== 'cash'">Coming Soon</span>
+              </h3>
+              <p class="method-description">{{ method.description }}</p>
+            </div>
+            <div class="method-radio">
+              <i class="fas fa-circle" *ngIf="selectedPaymentMethod !== method.id"></i>
+              <i class="fas fa-check-circle" *ngIf="selectedPaymentMethod === method.id"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Review -->
+        <div class="order-review">
+          <h3 class="review-title">Order Review</h3>
+
+          <div class="review-section">
+            <h4 class="review-subtitle">
+              <i class="fas fa-box"></i>
+              Products ({{ cartSummary?.totalItems }})
+            </h4>
+            <div class="review-items">
+              <div class="review-item" *ngFor="let item of cartSummary?.items">
+                <span class="item-name">{{ item.name }} × {{ item.quantity }}</span>
+                <span class="item-price">{{ formatPrice(item.price * item.quantity) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-section">
+            <h4 class="review-subtitle">
+              <i class="fas fa-map-marker-alt"></i>
+              Delivery Address
+            </h4>
+            <p class="review-text">
+              {{ shippingForm.value.fullName }}<br>
+              {{ shippingForm.value.phone }}<br>
+              {{ shippingForm.value.address }}, {{ shippingForm.value.city }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="form-navigation">
+        <button class="btn-secondary" (click)="previousStep()" *ngIf="currentStep > 1">
+          <i class="fas fa-arrow-right"></i>
+          Previous
+        </button>
+
+        <button class="btn-primary" (click)="nextStep()" *ngIf="currentStep < 3">
+          Next
+          <i class="fas fa-arrow-left"></i>
+        </button>
+
+        <button class="btn-success" (click)="placeOrder()" *ngIf="currentStep === 3" [disabled]="isProcessing">
+          <span *ngIf="!isProcessing">
+            <i class="fas fa-check"></i>
+            Confirm Order
+          </span>
+          <span *ngIf="isProcessing">
+            <i class="fas fa-spinner fa-spin"></i>
+            Processing...
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Side - Order Summary -->
+    <div class="order-summary">
+      <h2 class="summary-title">Order Summary</h2>
+
+      <div class="summary-items">
+        <div class="summary-item" *ngFor="let item of cartSummary?.items">
+          <div class="item-details">
+            <span class="item-qty">{{ item.quantity }}×</span>
+            <span class="item-name">{{ item.name }}</span>
+          </div>
+          <span class="item-price">{{ formatPrice(item.price * item.quantity) }}</span>
+        </div>
+      </div>
+
+      <div class="summary-divider"></div>
+
+      <div class="summary-calculations">
+        <div class="calc-row">
+          <span class="calc-label">Subtotal</span>
+          <span class="calc-value">{{ formatPrice(cartSummary?.subtotal || 0) }}</span>
+        </div>
+
+        <div class="calc-row">
+          <span class="calc-label">
+            <i class="fas fa-truck"></i>
+            Shipping
+          </span>
+          <span class="calc-value">
+            {{ formatPrice(getSelectedShippingMethod()?.price || 0) }}
+          </span>
+        </div>
+
+        <div class="calc-row">
+          <span class="calc-label">
+            <i class="fas fa-receipt"></i>
+            Tax (14%)
+          </span>
+          <span class="calc-value">{{ formatPrice(cartSummary?.tax || 0) }}</span>
+        </div>
+      </div>
+
+      <div class="summary-divider"></div>
+
+      <div class="summary-total">
+        <span class="total-label">Total</span>
+        <span class="total-value">{{ formatPrice(getTotalWithShipping()) }}</span>
+      </div>
+
+      <div class="summary-badges">
+        <div class="badge">
+          <i class="fas fa-shield-alt"></i>
+          <span>100% Secure Payment</span>
+        </div>
+        <div class="badge">
+          <i class="fas fa-undo"></i>
+          <span>Free Returns</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Message -->
+<div class="success-container" *ngIf="orderPlaced">
+  <div class="success-animation">
+    <div class="success-checkmark">
+      <div class="check-icon">
+        <span class="icon-line line-tip"></span>
+        <span class="icon-line line-long"></span>
+        <div class="icon-circle"></div>
+        <div class="icon-fix"></div>
+      </div>
+    </div>
+  </div>
+
+  <h1 class="success-title">Your order has been confirmed successfully!</h1>
+  <p class="success-message">
+    Thank you! Your order has been received and we will contact you soon
+  </p>
+
+  <div class="success-details">
+    <div class="detail-item">
+      <i class="fas fa-box"></i>
+      <span>Your order will be prepared within 24 hours</span>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-truck"></i>
+      <span>{{ getSelectedShippingMethod()?.duration }}</span>
+    </div>
+    <div class="detail-item">
+      <i class="fas fa-phone"></i>
+      <span>We will contact you at {{ shippingForm.value.phone }}</span>
+    </div>
+  </div>
+
+  <button class="btn-primary" routerLink="/user-dashboard">
+    <i class="fas fa-home"></i>
+    Back to Home
+  </button>
+</div>

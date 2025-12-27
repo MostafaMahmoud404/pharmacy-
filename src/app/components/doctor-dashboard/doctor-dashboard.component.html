@@ -1,108 +1,578 @@
-<div class="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50">
-  <!-- Header with gradient -->
-  <header class="bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center gap-3">
-          <div
-            class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-purple-600 font-bold shadow-md">
-            {{ currentUser?.name?.charAt(0).toUpperCase() || 'D' }}
-          </div>
-          <div>
-            <h2 class="text-white font-semibold">{{ currentUser?.name || 'Doctor' }}</h2>
-            <p class="text-purple-100 text-sm">{{ currentUser?.email }}</p>
-          </div>
+<!-- ✅ doctor-dashboard.component.html - Full Featured English Version
+     Path: src/app/components/doctor-dashboard/doctor-dashboard.component.html
+-->
+
+<!-- Enhanced Header (Always Visible) -->
+<div class="dashboard-header">
+  <div class="header-background">
+    <div class="animated-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+  </div>
+
+  <div class="header-content">
+    <!-- Top Section -->
+    <div class="header-top">
+      <div class="header-badge">
+        <span class="badge-pulse"></span>
+        <span>✨ Professional Medical Dashboard</span>
+      </div>
+
+      <button class="logout-btn" (click)="logout()">
+        <span class="logout-icon">🚪</span>
+        Logout
+      </button>
+    </div>
+
+    <!-- Doctor Info -->
+    <div class="doctor-info">
+      <div class="doctor-avatar">
+        <span class="avatar-letter">{{ currentUser?.name?.charAt(0) || 'D' }}</span>
+      </div>
+      <div class="doctor-details">
+        <h1>
+          Welcome Back,
+          <span class="highlight-text">{{ currentUser?.name || 'Doctor' }}</span>
+        </h1>
+        <p class="doctor-email">{{ currentUser?.email || 'doctor@hospital.com' }}</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="header-stats" *ngIf="stats">
+      <div class="stat-box">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.overview.totalConsultations || 0 }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-icon">✓</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.overview.completedConsultations || 0 }}</div>
+          <div class="stat-label">Completed</div>
+        </div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-icon">📅</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.today.consultations || 0 }}</div>
+          <div class="stat-label">Today</div>
+        </div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ (stats.overview.rating?.average || 0) | number:'1.1-1' }}</div>
+          <div class="stat-label">Rating</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decorative Icons -->
+    <div class="floating-icons">
+      <span class="floating-icon icon-1">🩺</span>
+      <span class="floating-icon icon-2">💊</span>
+      <span class="floating-icon icon-3">💉</span>
+    </div>
+  </div>
+
+  <!-- Wave Separator -->
+  <div class="header-wave">
+    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M0 0L60 10C120 20 240 40 360 46.7C480 53 600 47 720 43.3C840 40 960 40 1080 46.7C1200 53 1320 67 1380 73.3L1440 80V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V0Z"
+        fill="#f5f7fb" />
+    </svg>
+  </div>
+</div>
+
+<!-- Main Container -->
+<div class="dashboard-container">
+  <!-- Loading State -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loader">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading Dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="dashboard-content" *ngIf="!isLoading && stats">
+    <!-- Navigation Tabs -->
+    <div class="tabs-section">
+      <button class="tab-btn" [class.active]="activeTab === 'dashboard'" (click)="setActiveTab('dashboard')">
+        <span class="tab-icon">🏠</span>
+        Dashboard
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'availability'" (click)="setActiveTab('availability')">
+        <span class="tab-icon">⏰</span>
+        Availability
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'profile'" (click)="setActiveTab('profile')">
+        <span class="tab-icon">👤</span>
+        Profile
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="setActiveTab('history')">
+        <span class="tab-icon">📜</span>
+        History
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+        <span class="tab-icon">⚙️</span>
+        Settings
+      </button>
+    </div>
+
+    <!-- ==========================================
+         DASHBOARD TAB
+         ========================================== -->
+    <div *ngIf="activeTab === 'dashboard'" class="tab-content">
+      <div class="consultations-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="title-icon">📋</span>
+            Upcoming Consultations
+          </h2>
         </div>
 
-        <button (click)="logout()"
-          class="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all border border-white/30 flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>
-  </header>
+        <div class="consultations-list">
+          <div class="consultation-item" *ngFor="let consultation of getUpcomingConsultations()">
+            <div class="consultation-left">
+              <div class="patient-avatar">
+                <span>{{ getPatientInitials(consultation) }}</span>
+              </div>
+              <div class="consultation-info">
+                <h4 class="patient-name">{{ getPatientName(consultation) }}</h4>
+                <p class="consultation-type">{{ getConsultationType(consultation.type) }}</p>
+              </div>
+            </div>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Navigation Tabs -->
-    <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-2 mb-8">
-      <div class="flex flex-wrap gap-2">
-        <button (click)="setActiveTab('dashboard')" [class.bg-gradient-to-r]="activeTab === 'dashboard'"
-          [class.from-purple-600]="activeTab === 'dashboard'" [class.to-pink-600]="activeTab === 'dashboard'"
-          [class.text-white]="activeTab === 'dashboard'" [class.shadow-lg]="activeTab === 'dashboard'"
-          [class.text-gray-600]="activeTab !== 'dashboard'"
-          class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all hover:bg-gray-50 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span>Dashboard</span>
-        </button>
+            <div class="consultation-center">
+              <p class="consultation-time">
+                <span class="time-icon">🕐</span>
+                {{ formatDateTime(consultation.date || consultation.createdAt) }}
+              </p>
+            </div>
 
-        <button (click)="setActiveTab('availability')" [class.bg-gradient-to-r]="activeTab === 'availability'"
-          [class.from-purple-600]="activeTab === 'availability'" [class.to-pink-600]="activeTab === 'availability'"
-          [class.text-white]="activeTab === 'availability'" [class.shadow-lg]="activeTab === 'availability'"
-          [class.text-gray-600]="activeTab !== 'availability'"
-          class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all hover:bg-gray-50 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>Availability</span>
-        </button>
+            <div class="consultation-right">
+              <span [ngClass]="getStatusClass(consultation.status)">
+                {{ getStatusText(consultation.status) }}
+              </span>
+              <button class="view-details-btn" (click)="viewConsultationDetails(consultation)">
+                View Details
+              </button>
+            </div>
+          </div>
 
-        <button (click)="setActiveTab('profile')" [class.bg-gradient-to-r]="activeTab === 'profile'"
-          [class.from-purple-600]="activeTab === 'profile'" [class.to-pink-600]="activeTab === 'profile'"
-          [class.text-white]="activeTab === 'profile'" [class.shadow-lg]="activeTab === 'profile'"
-          [class.text-gray-600]="activeTab !== 'profile'"
-          class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all hover:bg-gray-50 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span>Profile</span>
-        </button>
-
-        <button (click)="setActiveTab('settings')" [class.bg-gradient-to-r]="activeTab === 'settings'"
-          [class.from-purple-600]="activeTab === 'settings'" [class.to-pink-600]="activeTab === 'settings'"
-          [class.text-white]="activeTab === 'settings'" [class.shadow-lg]="activeTab === 'settings'"
-          [class.text-gray-600]="activeTab !== 'settings'"
-          class="flex-1 min-w-[120px] px-6 py-3 rounded-xl font-semibold transition-all hover:bg-gray-50 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Settings</span>
-        </button>
+          <div class="empty-state" *ngIf="getUpcomingConsultations().length === 0">
+            <div class="empty-icon">🔭</div>
+            <p class="empty-text">No upcoming consultations</p>
+            <p class="empty-subtext">Your schedule is clear for now</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Content Area -->
-    <div class="transition-all duration-300">
-      <!-- Dashboard Tab -->
-      <div *ngIf="activeTab === 'dashboard'">
-        <app-dashboard-main></app-dashboard-main>
-      </div>
+    <!-- ==========================================
+         AVAILABILITY TAB
+         ========================================== -->
+    <div *ngIf="activeTab === 'availability'" class="tab-content">
+      <div class="availability-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="title-icon">⏰</span>
+            Set Your Availability
+          </h2>
+          <p class="section-subtitle">Configure your available time slots for each day of the week</p>
+        </div>
 
-      <!-- Availability Tab -->
-      <div *ngIf="activeTab === 'availability'">
-        <app-availability></app-availability>
-      </div>
+        <div *ngIf="isLoadingAvailability" class="loading-state">
+          <div class="spinner-small"></div>
+          <p>Loading availability...</p>
+        </div>
 
-      <!-- Profile Tab -->
-      <div *ngIf="activeTab === 'profile'">
-        <app-profile></app-profile>
-      </div>
+        <div *ngIf="!isLoadingAvailability" class="availability-content">
+          <div class="day-schedule" *ngFor="let day of daysOfWeek">
+            <div class="day-header">
+              <h3 class="day-name">{{ day.label }}</h3>
+              <button class="btn-add-slot" (click)="addTimeSlot(day.value)">
+                <span>➕</span> Add Time Slot
+              </button>
+            </div>
 
-      <!-- Settings Tab -->
-      <div *ngIf="activeTab === 'settings'">
-        <app-settings></app-settings>
+            <div class="time-slots">
+              <div class="time-slot" *ngFor="let slot of getSlotsForDay(day.value); let i = index">
+                <input type="time" [(ngModel)]="slot.startTime" class="time-input" placeholder="Start Time" />
+                <span class="separator">-</span>
+                <input type="time" [(ngModel)]="slot.endTime" class="time-input" placeholder="End Time" />
+                <button class="btn-remove-slot" (click)="removeTimeSlot(day.value, i)" title="Remove this slot">
+                  <span>🗑️</span>
+                </button>
+              </div>
+
+              <div *ngIf="!getSlotsForDay(day.value).length" class="no-slots">
+                No time slots configured for this day
+              </div>
+            </div>
+          </div>
+
+          <div class="actions-section">
+            <button class="btn-save" (click)="saveAvailability()" [disabled]="isSavingAvailability">
+              <span *ngIf="!isSavingAvailability">💾 Save Availability</span>
+              <span *ngIf="isSavingAvailability">
+                <span class="btn-spinner"></span> Saving...
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <!-- ==========================================
+         PROFILE TAB
+         ========================================== -->
+    <div *ngIf="activeTab === 'profile'" class="tab-content">
+      <div class="profile-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="title-icon">👤</span>
+            Doctor Profile
+          </h2>
+          <p class="section-subtitle">Manage your professional information</p>
+        </div>
+
+        <div *ngIf="isLoadingProfile" class="loading-state">
+          <div class="spinner-small"></div>
+          <p>Loading profile...</p>
+        </div>
+
+        <div *ngIf="!isLoadingProfile && doctorProfile" class="profile-content">
+          <div class="profile-form">
+            <!-- Personal Information -->
+            <div class="form-section">
+              <h3 class="form-section-title">Personal Information</h3>
+
+              <div class="form-group">
+                <label>Full Name <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="doctorProfile.user!.name" class="form-input"
+                  placeholder="Enter your full name" />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Email <span class="required">*</span></label>
+                  <input type="email" [(ngModel)]="doctorProfile.user!.email" class="form-input" readonly
+                    placeholder="your@email.com" />
+                </div>
+
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="tel" [(ngModel)]="doctorProfile.user!.phone" class="form-input"
+                    placeholder="+1 (555) 123-4567" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Professional Information -->
+            <div class="form-section">
+              <h3 class="form-section-title">Professional Information</h3>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Specialty (English)</label>
+                  <input type="text" [(ngModel)]="doctorProfile.specialty" class="form-input"
+                    placeholder="e.g., Cardiology" />
+                </div>
+
+                <div class="form-group">
+                  <label>Specialty (Arabic)</label>
+                  <input type="text" [(ngModel)]="doctorProfile.specialtyArabic" class="form-input"
+                    placeholder="e.g., أمراض القلب" dir="rtl" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>License Number</label>
+                  <input type="text" [(ngModel)]="doctorProfile.licenseNumber" class="form-input"
+                    placeholder="Enter license number" />
+                </div>
+
+                <div class="form-group">
+                  <label>Years of Experience</label>
+                  <input type="number" [(ngModel)]="doctorProfile.experience" class="form-input" min="0"
+                    placeholder="0" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Consultation Fee (USD)</label>
+                <input type="number" [(ngModel)]="doctorProfile.consultationFee" class="form-input" min="0"
+                  placeholder="0.00" step="0.01" />
+              </div>
+            </div>
+
+            <!-- About -->
+            <div class="form-section">
+              <h3 class="form-section-title">About</h3>
+
+              <div class="form-group">
+                <label>Professional Bio</label>
+                <textarea [(ngModel)]="doctorProfile.bio" class="form-textarea" rows="5"
+                  placeholder="Write a brief description about yourself, your experience, and your medical practice..."></textarea>
+                <small class="form-hint">This will be visible to patients</small>
+              </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="actions-section">
+              <button class="btn-save" (click)="updateProfile()" [disabled]="isSavingProfile">
+                <span *ngIf="!isSavingProfile">💾 Save Profile Changes</span>
+                <span *ngIf="isSavingProfile">
+                  <span class="btn-spinner"></span> Saving...
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Continuation of HTML from line 414 onwards -->
+
+    <!-- HISTORY TAB -->
+    <div *ngIf="activeTab === 'history'" class="tab-content">
+      <div class="history-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="title-icon">📜</span>
+            Consultation History
+          </h2>
+          <p class="section-subtitle">View all your past consultations</p>
+        </div>
+
+        <div *ngIf="isLoadingHistory" class="loading-state">
+          <div class="spinner-small"></div>
+          <p>Loading history...</p>
+        </div>
+
+        <div *ngIf="!isLoadingHistory" class="history-content">
+          <div class="consultations-list">
+            <div class="consultation-item" *ngFor="let consultation of allConsultations">
+              <div class="consultation-left">
+                <div class="patient-avatar">
+                  <span>{{ getPatientInitials(consultation) }}</span>
+                </div>
+                <div class="consultation-info">
+                  <h4 class="patient-name">{{ getPatientName(consultation) }}</h4>
+                  <p class="consultation-type">{{ getConsultationType(consultation.type) }}</p>
+                </div>
+              </div>
+
+              <div class="consultation-center">
+                <p class="consultation-time">
+                  <span class="time-icon">🕐</span>
+                  {{ formatDateTime(consultation.date || consultation.createdAt) }}
+                </p>
+              </div>
+
+              <div class="consultation-right">
+                <span [ngClass]="getStatusClass(consultation.status)">
+                  {{ getStatusText(consultation.status) }}
+                </span>
+                <button class="view-details-btn" (click)="viewConsultationDetails(consultation)">
+                  View Details
+                </button>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="allConsultations.length === 0">
+              <div class="empty-icon">📝</div>
+              <p class="empty-text">No consultation history</p>
+              <p class="empty-subtext">Your completed consultations will appear here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div *ngIf="activeTab === 'settings'" class="tab-content">
+      <div class="settings-section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="title-icon">⚙️</span>
+            Settings
+          </h2>
+          <p class="section-subtitle">Manage your account preferences</p>
+        </div>
+
+        <div class="settings-content">
+          <!-- Change Password Card -->
+          <div class="settings-card">
+            <h3>🔐 Change Password</h3>
+            <p>Update your password to keep your account secure</p>
+
+            <div class="password-form">
+              <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" [(ngModel)]="passwordData.currentPassword" class="form-input"
+                  placeholder="Enter current password" [class.error]="passwordError" />
+              </div>
+
+              <div class="form-group">
+                <label>New Password</label>
+                <input type="password" [(ngModel)]="passwordData.newPassword" class="form-input"
+                  placeholder="Enter new password (min 6 characters)" [class.error]="passwordError" />
+              </div>
+
+              <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" [(ngModel)]="passwordData.confirmPassword" class="form-input"
+                  placeholder="Confirm new password" [class.error]="passwordError" />
+              </div>
+
+              <div class="alert alert-error" *ngIf="passwordError">
+                {{ passwordError }}
+              </div>
+
+              <div class="alert alert-success" *ngIf="passwordSuccess">
+                {{ passwordSuccess }}
+              </div>
+
+              <button class="btn-primary" (click)="changePassword()" [disabled]="isChangingPassword">
+                <span *ngIf="!isChangingPassword">🔑 Change Password</span>
+                <span *ngIf="isChangingPassword">
+                  <span class="btn-spinner"></span> Changing...
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification Settings Card -->
+          <div class="settings-card">
+            <h3>🔔 Notification Preferences</h3>
+            <p>Choose how you want to receive notifications</p>
+
+            <div class="settings-options">
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>Email Notifications</strong>
+                  <span>Receive updates via email</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="notificationSettings.emailNotifications" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>SMS Notifications</strong>
+                  <span>Receive updates via text message</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="notificationSettings.smsNotifications" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>Appointment Reminders</strong>
+                  <span>Get reminded of upcoming appointments</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="notificationSettings.appointmentReminders" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>Consultation Updates</strong>
+                  <span>Receive updates about consultations</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="notificationSettings.consultationUpdates" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <button class="btn-secondary" (click)="saveNotificationSettings()" [disabled]="isSavingNotifications">
+              <span *ngIf="!isSavingNotifications">💾 Save Notification Settings</span>
+              <span *ngIf="isSavingNotifications">
+                <span class="btn-spinner"></span> Saving...
+              </span>
+            </button>
+          </div>
+
+          <!-- Privacy Settings Card -->
+          <div class="settings-card">
+            <h3>🔒 Privacy Settings</h3>
+            <p>Control your privacy and data visibility</p>
+
+            <div class="settings-options">
+              <div class="form-group">
+                <label>Profile Visibility</label>
+                <select [(ngModel)]="privacySettings.profileVisibility" class="form-select">
+                  <option value="public">Public - Visible to everyone</option>
+                  <option value="patients">Patients Only - Visible to your patients</option>
+                  <option value="private">Private - Hidden from search</option>
+                </select>
+              </div>
+
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>Show Phone Number</strong>
+                  <span>Display phone on your profile</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="privacySettings.showPhone" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-option">
+                <div class="option-info">
+                  <strong>Show Email Address</strong>
+                  <span>Display email on your profile</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="privacySettings.showEmail" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <button class="btn-secondary" (click)="savePrivacySettings()" [disabled]="isSavingPrivacy">
+              <span *ngIf="!isSavingPrivacy">💾 Save Privacy Settings</span>
+              <span *ngIf="isSavingPrivacy">
+                <span class="btn-spinner"></span> Saving...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-state" *ngIf="!isLoading && !stats">
+    <div class="error-content">
+      <p class="error-icon">❌</p>
+      <p class="error-message">Failed to Load Dashboard</p>
+      <p class="error-subtitle">Please try again</p>
+      <button class="btn-retry" (click)="loadDashboardData()">
+        <span class="retry-icon">🔄</span>
+        Retry
+      </button>
     </div>
   </div>
 </div>

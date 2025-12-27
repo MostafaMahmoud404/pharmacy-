@@ -41,7 +41,8 @@
   }
 
   .highlight-blue {
-    background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%);
+    /* background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%); */
+  background: linear-gradient(135deg, #0066ff 0%, #b300ad 30%, #6b2d9f 70%, #8b3db8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -90,7 +91,8 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%);
+    /* background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%); */
+  background: linear-gradient(135deg, #0066ff 0%, #b300ad 30%, #6b2d9f 70%, #8b3db8 100%);
     color: white;
     position: relative;
     overflow: hidden;
@@ -132,7 +134,8 @@
     left: 0;
     width: 0;
     height: 100%;
-    background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%);
+    /* background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%); */
+  background: linear-gradient(135deg, #0066ff 0%, #b300ad 30%, #6b2d9f 70%, #8b3db8 100%);
     transition: width 0.4s ease;
     z-index: 0;
   }
@@ -220,7 +223,8 @@
 
   /* Video Call Card */
   .video-call-card {
-    background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%);
+    /* background: linear-gradient(135deg, #3F1A6D 0%, #5B2A8F 100%); */
+  background: linear-gradient(135deg, #0066ff 0%, #b300ad 30%, #6b2d9f 70%, #8b3db8 100%);
     border-radius: 2rem;
     padding: 2rem;
     box-shadow: 0 20px 60px rgba(63, 26, 109, 0.3);

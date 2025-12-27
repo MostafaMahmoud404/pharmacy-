@@ -96,7 +96,7 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadUserData();
@@ -167,7 +167,7 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
       {
         _id: '1',
         orderNumber: 'ORD-001',
-        pharmacyName: 'PharmaCare Pharmacy',
+        pharmacyName: 'DOC&DOSE Pharmacy',
         status: 'out-for-delivery',
         items: [
           { productName: 'Amoxicillin 500mg', quantity: 2, price: 50 },

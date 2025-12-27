@@ -27,10 +27,10 @@ export interface OrderResponse {
 })
 export class PharmacistService {
   private apiUrl = environment.apiUrl;
-  private dashboardUrl = `${this.apiUrl}/api/dashboard`;
-  private ordersUrl = `${this.apiUrl}/api/orders`;
-  private prescriptionsUrl = `${this.apiUrl}/api/prescriptions`;
-  private productsUrl = `${this.apiUrl}/api/products`;
+  private dashboardUrl = `${this.apiUrl}/dashboard`;
+  private ordersUrl = `${this.apiUrl}/orders`;
+  private prescriptionsUrl = `${this.apiUrl}/prescriptions`;
+  private productsUrl = `${this.apiUrl}/products`;
 
   constructor(private http: HttpClient) {
     console.log('API Base URL:', this.apiUrl);

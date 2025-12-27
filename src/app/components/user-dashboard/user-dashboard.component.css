@@ -40,6 +40,7 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eef2 50%, #f0f2f5 100%);
   color: var(--text-dark);
+  padding-top: 80px; /* لتجنب تغطية الـ navbar */
 }
 
 /* ========================================== */

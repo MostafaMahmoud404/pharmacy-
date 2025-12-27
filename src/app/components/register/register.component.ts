@@ -292,12 +292,39 @@ export class RegisterComponent implements OnInit {
     this.error = '';
     this.success = '';
 
+    // Check password strength first
     if (!this.passwordStrength.isStrong) {
       this.error = 'Password is too weak. Please create a stronger password';
       return;
     }
 
+    // Check form validity
     if (this.registerForm.invalid) {
+      // Find the first invalid field and show its error
+      const invalidFields = Object.keys(this.registerForm.controls).filter(key => {
+        const control = this.registerForm.get(key);
+        return control && control.invalid && control.touched;
+      });
+
+      if (invalidFields.length > 0) {
+        const firstInvalidField = invalidFields[0];
+        const control = this.registerForm.get(firstInvalidField);
+        if (control?.errors) {
+          if (control.errors['required']) {
+            this.error = `${firstInvalidField.charAt(0).toUpperCase() + firstInvalidField.slice(1)} is required`;
+          } else if (control.errors['email']) {
+            this.error = 'Please enter a valid email address';
+          } else if (control.errors['pattern']) {
+            this.error = 'Please enter a valid phone number starting with 01';
+          } else if (control.errors['minlength']) {
+            this.error = 'Password must be at least 6 characters';
+          } else if (control.errors['weakPassword']) {
+            this.error = 'Password is too weak. Please create a stronger password';
+          }
+        }
+      } else {
+        this.error = 'Please fill in all required fields correctly';
+      }
       return;
     }
 

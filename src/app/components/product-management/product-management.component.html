@@ -1,0 +1,295 @@
+<!-- src/app/components/product-management/product-management.component.html -->
+
+<div class="products-management-container" dir="ltr">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Products Management</h1>
+      <p class="page-subtitle">Manage your DOC&DOSE inventory</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-add-product" (click)="navigateToAddProduct()">
+        <span class="btn-icon">➕</span>
+        <span>Add New Product</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card card-primary">
+      <div class="card-header">
+        <span class="card-icon">📦</span>
+        <h3 class="card-title">Total Products</h3>
+      </div>
+      <p class="card-number">{{ stats.total }}</p>
+      <p class="card-subtitle">All products</p>
+    </div>
+
+    <div class="stat-card card-success">
+      <div class="card-header">
+        <span class="card-icon">✅</span>
+        <h3 class="card-title">Active</h3>
+      </div>
+      <p class="card-number">{{ stats.active }}</p>
+      <p class="card-subtitle">Available for sale</p>
+    </div>
+
+    <div class="stat-card card-warning">
+      <div class="card-header">
+        <span class="card-icon">⚠️</span>
+        <h3 class="card-title">Low Stock</h3>
+      </div>
+      <p class="card-number">{{ stats.lowStock }}</p>
+      <p class="card-subtitle">Need restock</p>
+    </div>
+
+    <div class="stat-card card-danger">
+      <div class="card-header">
+        <span class="card-icon">❌</span>
+        <h3 class="card-title">Out of Stock</h3>
+      </div>
+      <p class="card-number">{{ stats.outOfStock }}</p>
+      <p class="card-subtitle">Unavailable</p>
+    </div>
+  </div>
+
+  <!-- Filters & Actions Bar -->
+  <div class="filters-bar">
+    <div class="filters-left">
+      <!-- Search -->
+      <div class="search-box">
+        <input type="text" placeholder="Search products..." [(ngModel)]="filters.search" (keyup.enter)="onSearch()" />
+        <button class="btn-search" (click)="onSearch()">
+          <span>🔍</span>
+        </button>
+      </div>
+
+      <!-- Filter Button -->
+      <button class="btn-filter" (click)="toggleFilters()" [class.active]="showFilters">
+        <span>🎯</span>
+        <span>Filters</span>
+      </button>
+
+      <!-- Selected Actions -->
+      <div class="selected-actions" *ngIf="selectedProducts.size > 0">
+        <span class="selected-count">{{ selectedProducts.size }} selected</span>
+        <button class="btn-delete-selected" (click)="deleteSelected()">
+          <span>🗑️</span>
+          <span>Delete</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="filters-right">
+      <!-- View Toggle -->
+      <button class="btn-view-toggle" (click)="toggleViewMode()"
+        [title]="viewMode === 'grid' ? 'List View' : 'Grid View'">
+        <span>{{ viewMode === 'grid' ? '☰' : '▦' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="filters-panel" *ngIf="showFilters">
+    <div class="filter-group">
+      <label>Category:</label>
+      <select [(ngModel)]="filters.category" (change)="applyFilters()">
+        <option value="">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat.en">{{ cat.ar }}</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Status:</label>
+      <select [(ngModel)]="filters.status" (change)="applyFilters()">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Stock:</label>
+      <select [(ngModel)]="filters.stock" (change)="applyFilters()">
+        <option value="all">All</option>
+        <option value="low">Low Stock</option>
+        <option value="out">Out of Stock</option>
+      </select>
+    </div>
+
+    <button class="btn-clear-filters" (click)="clearFilters()">
+      <span>✖</span>
+      <span>Clear All</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading products...</p>
+  </div>
+
+  <!-- Products Grid/List -->
+  <div class="products-container" *ngIf="!isLoading">
+    <!-- Grid View -->
+    <div class="products-grid" *ngIf="viewMode === 'grid'">
+      <div *ngFor="let product of filteredProducts" class="product-card"
+        [class.selected]="selectedProducts.has(product._id!)">
+        <!-- Select Checkbox -->
+        <div class="card-select">
+          <input type="checkbox" [checked]="selectedProducts.has(product._id!)"
+            (change)="toggleSelectProduct(product._id)" />
+        </div>
+
+        <!-- Product Image -->
+        <div class="product-image" (click)="viewProduct(product._id)">
+          <img [src]="product.images?.[0]?.url || 'assets/placeholder.png'" [alt]="product.name" />
+          <span class="status-badge" [class.active]="product.isActive">
+            {{ product.isActive ? 'Active' : 'Inactive' }}
+          </span>
+          <span class="featured-badge" *ngIf="product.isFeatured">⭐ Featured</span>
+        </div>
+
+        <!-- Product Info -->
+        <div class="product-info">
+          <h3 class="product-name" (click)="viewProduct(product._id)">{{ product.name }}</h3>
+          <p class="product-name-ar">{{ product.nameArabic }}</p>
+
+          <div class="product-meta">
+            <span class="sku">SKU: {{ product.sku }}</span>
+            <span class="category">{{ product.category }}</span>
+          </div>
+
+          <div class="product-pricing">
+            <span class="price">{{ formatCurrency(product.price) }}</span>
+            <span class="discount" *ngIf="product.discountPrice">
+              {{ formatCurrency(product.discountPrice) }}
+            </span>
+          </div>
+
+          <div class="product-stock">
+            <span [class]="'stock-badge ' + getStockStatusClass(product.stock)">
+              {{ getStockStatusText(product.stock) }} ({{ product.stock }})
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div class="product-actions">
+            <button class="btn-action btn-edit" (click)="editProduct(product._id)" title="Edit">
+              <span>✏️</span>
+            </button>
+            <button class="btn-action btn-stock" (click)="updateStock(product)" title="Update Stock">
+              <span>📊</span>
+            </button>
+            <button class="btn-action btn-toggle" (click)="toggleProductStatus(product)"
+              [title]="product.isActive ? 'Deactivate' : 'Activate'">
+              <span>{{ product.isActive ? '🔴' : '🟢' }}</span>
+            </button>
+            <button class="btn-action btn-delete" (click)="deleteProduct(product)" title="Delete">
+              <span>🗑️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div class="products-list" *ngIf="viewMode === 'list'">
+      <!-- Table Header -->
+      <div class="list-header">
+        <div class="col-select">
+          <input type="checkbox" (change)="selectAll()"
+            [checked]="selectedProducts.size === filteredProducts.length && filteredProducts.length > 0" />
+        </div>
+        <div class="col-image">Image</div>
+        <div class="col-name">Product Name</div>
+        <div class="col-sku">SKU</div>
+        <div class="col-category">Category</div>
+        <div class="col-price">Price</div>
+        <div class="col-stock">Stock</div>
+        <div class="col-status">Status</div>
+        <div class="col-actions">Actions</div>
+      </div>
+
+      <!-- Table Rows -->
+      <div *ngFor="let product of filteredProducts" class="list-row"
+        [class.selected]="selectedProducts.has(product._id!)">
+        <div class="col-select">
+          <input type="checkbox" [checked]="selectedProducts.has(product._id!)"
+            (change)="toggleSelectProduct(product._id)" />
+        </div>
+        <div class="col-image">
+          <img [src]="product.images?.[0]?.url || 'assets/placeholder.png'" [alt]="product.name"
+            (click)="viewProduct(product._id)" />
+        </div>
+        <div class="col-name" (click)="viewProduct(product._id)">
+          <strong>{{ product.name }}</strong>
+          <small>{{ product.nameArabic }}</small>
+        </div>
+        <div class="col-sku">{{ product.sku }}</div>
+        <div class="col-category">{{ product.category }}</div>
+        <div class="col-price">
+          <span class="price">{{ formatCurrency(product.price) }}</span>
+          <span class="discount" *ngIf="product.discountPrice">
+            {{ formatCurrency(product.discountPrice) }}
+          </span>
+        </div>
+        <div class="col-stock">
+          <span [class]="'stock-badge ' + getStockStatusClass(product.stock)">
+            {{ product.stock }}
+          </span>
+        </div>
+        <div class="col-status">
+          <span class="status-badge" [class.active]="product.isActive">
+            {{ product.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+        <div class="col-actions">
+          <button class="btn-action btn-edit" (click)="editProduct(product._id)" title="Edit">
+            <span>✏️</span>
+          </button>
+          <button class="btn-action btn-stock" (click)="updateStock(product)" title="Update Stock">
+            <span>📊</span>
+          </button>
+          <button class="btn-action btn-toggle" (click)="toggleProductStatus(product)"
+            [title]="product.isActive ? 'Deactivate' : 'Activate'">
+            <span>{{ product.isActive ? '🔴' : '🟢' }}</span>
+          </button>
+          <button class="btn-action btn-delete" (click)="deleteProduct(product)" title="Delete">
+            <span>🗑️</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h3>No Products Found</h3>
+      <p>Try adjusting your filters or add a new product</p>
+      <button class="btn-primary" (click)="navigateToAddProduct()">
+        <span>➕</span>
+        <span>Add New Product</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="filteredProducts.length > 0 && pagination.pages > 1">
+    <button class="btn-page" (click)="previousPage()" [disabled]="pagination.page === 1">
+      <span>←</span>
+      <span>Previous</span>
+    </button>
+
+    <div class="page-info">
+      <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+      <span class="total-count">({{ pagination.total }} products)</span>
+    </div>
+
+    <button class="btn-page" (click)="nextPage()" [disabled]="pagination.page === pagination.pages">
+      <span>Next</span>
+      <span>→</span>
+    </button>
+  </div>
+</div>
