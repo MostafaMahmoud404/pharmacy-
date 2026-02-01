@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const path = require('path');
 const connectDB = require("./config/database");
 const { initializeSocket } = require("./config/socket");
 
@@ -53,11 +54,12 @@ app.get("/", (req, res) => {
   });
 });
 
-// Static files
-app.use("/uploads", express.static("uploads"));
+// Static files - MUST be before routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use("/api/v1/auth", require("./routes/authRoutes"));
+app.use("/api/v1/cart", require("./routes/cartRoutes"));
 app.use("/api/v1/users", require("./routes/userRoutes"));
 app.use("/api/v1/doctors", require("./routes/doctorRoutes"));
 app.use("/api/v1/products", require("./routes/productRoutes"));

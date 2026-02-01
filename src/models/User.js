@@ -106,6 +106,17 @@ userSchema.virtual("doctorProfile", {
   justOne: true,
 });
 
+// Virtual للحصول على العنوان الافتراضي مع رقم الهاتف
+userSchema.virtual("address").get(function () {
+  const defaultAddress = this.addresses.find(addr => addr.isDefault) || this.addresses[0];
+  if (!defaultAddress) return null;
+
+  return {
+    ...defaultAddress.toObject(),
+    phone: this.phone // إضافة رقم الهاتف من المستخدم
+  };
+});
+
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;

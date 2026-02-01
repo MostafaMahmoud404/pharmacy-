@@ -2,38 +2,66 @@ const express = require("express");
 const router = express.Router();
 const {
   processCashPayment,
-  createStripePaymentIntent,
-  confirmStripePayment,
   createPaymobToken,
   paymobCallback,
-  payWithWallet,
-  getPaymentMethods,
-  getPaymentHistory,
+  getPaymentStatus,
+  getPaymentMethods
 } = require("../controllers/paymentController");
 const { protect } = require("../middleware/auth");
 const { isCustomer } = require("../middleware/roleCheck");
 
-// Public routes
+// ========================================
+// PUBLIC ROUTES (No authentication needed)
+// ========================================
+
+// ✅ Paymob webhook callback - MUST be public
+// This endpoint receives payment confirmation from Paymob servers
 router.post("/paymob/callback", paymobCallback);
 
-// Protected routes
-router.use(protect);
+// ========================================
+// PROTECTED ROUTES (Authentication required)
+// ========================================
 
-// Get available payment methods
+router.use(protect); // ✅ كل الـ routes اللي تحت محتاجة authentication
+
+// ✅ Get available payment methods
 router.get("/methods", getPaymentMethods);
 
-// Get payment history
-router.get("/history", getPaymentHistory);
+// ✅ Get payment status
+// Allow customer to check their own order, pharmacist/admin can check any order
+router.get("/status/:orderId", getPaymentStatus);
 
-// Customer routes
+// ========================================
+// CUSTOMER ONLY ROUTES
+// ========================================
+
+// ✅ Cash on delivery payment
+// Customer creates order with cash payment method
 router.post("/cash", isCustomer, processCashPayment);
-router.post("/wallet", isCustomer, payWithWallet);
 
-// Stripe
-router.post("/stripe/create-intent", isCustomer, createStripePaymentIntent);
-router.post("/stripe/confirm", isCustomer, confirmStripePayment);
-
-// Paymob
+// ✅ Create Paymob payment token (card payment)
+// Customer initiates card payment and gets iframe URL
 router.post("/paymob/create-token", isCustomer, createPaymobToken);
+
+// ========================================
+// OPTIONAL: Additional payment routes (if needed)
+// ========================================
+
+// Uncomment if you want to add these features later:
+
+// // Refund payment (admin/pharmacist only)
+// router.post("/refund/:orderId", protect, isPharmacistOrAdmin, refundPayment);
+
+// // Get payment history for current user
+// router.get("/history", isCustomer, getPaymentHistory);
+
+// // Get all payments (admin only)
+// router.get("/all", protect, isAdmin, getAllPayments);
+
+// // Cancel pending payment (customer only)
+// router.post("/cancel/:orderId", isCustomer, cancelPayment);
+
+// // Verify payment manually (admin only)
+// router.post("/verify/:orderId", protect, isAdmin, verifyPayment);
 
 module.exports = router;

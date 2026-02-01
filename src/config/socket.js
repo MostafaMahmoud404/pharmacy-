@@ -8,10 +8,13 @@ let io;
 const initializeSocket = (server) => {
   io = socketIo(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      // ✅ Fixed: Port 4200 for Angular
+      origin: process.env.FRONTEND_URL || "http://localhost:4200",
       credentials: true,
+      methods: ["GET", "POST"],
     },
     path: "/socket.io",
+    transports: ['websocket', 'polling'], // ✅ Support both transports
   });
 
   // Middleware للتحقق من JWT

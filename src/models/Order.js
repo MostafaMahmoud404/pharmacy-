@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
+const crypto = require('crypto');
 
 const orderSchema = new mongoose.Schema(
   {
+    // ✅ FIXED: Uncommented and made required
     orderNumber: {
       type: String,
       unique: true,
@@ -214,8 +216,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 // Indexes
-/*orderSchema.index({ orderNumber: 1 });*/
-
+orderSchema.index({ orderNumber: 1 }); // ✅ FIXED: Uncommented
 orderSchema.index({ customer: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ "payment.status": 1 });
@@ -243,38 +244,32 @@ orderSchema.virtual("totalItems").get(function () {
   return this.items.reduce((sum, item) => sum + item.quantity, 0);
 });
 
-// Pre-save middleware لتوليد رقم الطلب
+// ✅ FIXED: Pre-save middleware with proper orderNumber generation
 orderSchema.pre("save", async function (next) {
-  if (!this.orderNumber) {
-    const count = await mongoose.model("Order").countDocuments();
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    this.orderNumber = `ORD${year}${month}${String(count + 1).padStart(
-      6,
-      "0"
-    )}`;
+  try {
+    // حساب الأسعار تلقائياً
+    if (this.isModified("items")) {
+      this.pricing.subtotal = this.items.reduce(
+        (sum, item) => sum + item.subtotal,
+        0
+      );
+
+      // حساب الضريبة (مثلاً 14%)
+      this.pricing.tax = this.pricing.subtotal * 0.14;
+
+      // حساب الإجمالي
+      this.pricing.total =
+        this.pricing.subtotal +
+        this.pricing.deliveryFee +
+        this.pricing.tax -
+        this.pricing.discount.amount;
+    }
+
+    next();
+  } catch (error) {
+    console.error('❌ Error in pre-save middleware:', error);
+    next(error);
   }
-
-  // حساب الأسعار تلقائياً
-  if (this.isModified("items")) {
-    this.pricing.subtotal = this.items.reduce(
-      (sum, item) => sum + item.subtotal,
-      0
-    );
-
-    // حساب الضريبة (مثلاً 14%)
-    this.pricing.tax = this.pricing.subtotal * 0.14;
-
-    // حساب الإجمالي
-    this.pricing.total =
-      this.pricing.subtotal +
-      this.pricing.deliveryFee +
-      this.pricing.tax -
-      this.pricing.discount.amount;
-  }
-
-  next();
 });
 
 // Pre-save middleware لتسجيل تغييرات الحالة
@@ -398,6 +393,37 @@ orderSchema.statics.getOrderStats = async function (startDate, endDate) {
       },
     },
   ]);
+};
+
+// ✅ ADDED: Static helper to generate unique order number
+orderSchema.statics.generateOrderNumber = async function () {
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  while (attempts < maxAttempts) {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    // Use timestamp + random for uniqueness
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = crypto.randomBytes(2).toString('hex').toUpperCase();
+
+    const orderNumber = `ORD-${year}${month}${day}-${timestamp}${random}`;
+
+    // Check if exists
+    const exists = await this.findOne({ orderNumber });
+
+    if (!exists) {
+      return orderNumber;
+    }
+
+    attempts++;
+    console.log(`⚠️ orderNumber collision, retrying... (${attempts}/${maxAttempts})`);
+  }
+
+  throw new Error('Failed to generate unique order number after maximum attempts');
 };
 
 const Order = mongoose.model("Order", orderSchema);

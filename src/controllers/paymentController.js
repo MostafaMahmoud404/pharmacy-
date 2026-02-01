@@ -1,484 +1,563 @@
 const Order = require("../models/Order");
-const Consultation = require("../models/Consultation");
+const Cart = require("../models/Cart");
+const User = require("../models/User");
+const Product = require("../models/Product");
+const crypto = require("crypto");
+const axios = require("axios");
 const {
   asyncHandler,
   ErrorResponse,
   successResponse,
 } = require("../middleware/errorHandler");
-const crypto = require("crypto");
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Calculate cart total deterministically
+ */
+function calculateCartTotal(cartItems) {
+  if (!cartItems || !cartItems.length) return 0;
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    return sum + (item.price * item.quantity);
+  }, 0);
+
+  const tax = subtotal * 0.14; // 14%
+  const delivery = 30; // Fixed delivery fee
+  const serviceFee = subtotal * 0.02; // 2%
+
+  return Math.round((subtotal + tax + delivery + serviceFee) * 100) / 100;
+}
+
+/**
+ * Get Paymob auth token
+ */
+async function getPaymobAuthToken() {
+  try {
+    const response = await axios.post(
+      `${process.env.PAYMOB_BASE_URL}/auth/tokens`,
+      { api_key: process.env.PAYMOB_API_KEY }
+    );
+    return response.data.token;
+  } catch (error) {
+    throw new Error(`Paymob auth failed: ${error.message}`);
+  }
+}
+
+/**
+ * Create Paymob order
+ */
+async function createPaymobOrder(authToken, amountCents, merchantOrderId) {
+  try {
+    const response = await axios.post(
+      `${process.env.PAYMOB_BASE_URL}/ecommerce/orders`,
+      {
+        auth_token: authToken,
+        delivery_needed: false,
+        amount_cents: amountCents,
+        currency: 'EGP',
+        merchant_order_id: merchantOrderId,
+        items: []
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(`Paymob order creation failed: ${error.message}`);
+  }
+}
+
+/**
+ * Create Paymob payment key
+ */
+async function createPaymobPaymentKey(authToken, orderId, amountCents, billingData) {
+  try {
+    const response = await axios.post(
+      `${process.env.PAYMOB_BASE_URL}/acceptance/payment_keys`,
+      {
+        auth_token: authToken,
+        amount_cents: amountCents,
+        expiration: 3600,
+        order_id: orderId,
+        integration_id: process.env.PAYMOB_INTEGRATION_ID,
+        currency: 'EGP',
+        billing_data: billingData
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(`Paymob payment key creation failed: ${error.message}`);
+  }
+}
 
 // ========================================
 // CASH ON DELIVERY
 // ========================================
 
-// @desc    Process Cash on Delivery
-// @route   POST /api/payments/cash
-// @access  Private/Customer
+/**
+ * @desc    Process Cash on Delivery Payment
+ * @route   POST /api/v1/payments/cash
+ * @access  Private/Customer
+ */
 const processCashPayment = asyncHandler(async (req, res, next) => {
-  const { orderId, consultationId } = req.body;
+  // 1. Get user's cart from DB
+  const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
 
-  if (orderId) {
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return next(new ErrorResponse("الطلب غير موجود", 404));
+  if (!cart || !cart.items || cart.items.length === 0) {
+    return next(new ErrorResponse('السلة فارغة', 400));
+  }
+
+  // 2. Calculate total (backend determines price - NOT client)
+  const totalAmount = calculateCartTotal(cart.items);
+
+  if (totalAmount <= 0) {
+    return next(new ErrorResponse('خطأ في حساب المجموع', 400));
+  }
+
+  // 3. Get user's shipping address
+  const user = await User.findById(req.user._id);
+  if (!user || !user.address) {
+    return next(new ErrorResponse('عنوان الشحن غير موجود', 400));
+  }
+
+  // 4. Snapshot pricing - save current prices
+  const orderItems = cart.items.map(item => ({
+    product: item.product._id,
+    quantity: item.quantity,
+    price: item.price, // Snapshot current price
+    name: item.product.name,
+    subtotal: item.price * item.quantity
+  }));
+
+  // 5. Calculate pricing breakdown
+  const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const tax = Math.round(subtotal * 0.14 * 100) / 100;
+  const deliveryFee = 30;
+  const total = Math.round((subtotal + tax + deliveryFee) * 100) / 100;
+
+  // 6. Create order with proper schema structure
+  const order = await Order.create({
+    customer: req.user._id,
+    items: orderItems,
+    pricing: {
+      subtotal,
+      deliveryFee,
+      tax,
+      total
+    },
+    deliveryAddress: user.address,
+    payment: {
+      method: 'cash',
+      status: 'pending' // Will be 'paid' when delivered
+    },
+    status: 'confirmed',
+    metadata: {
+      source: 'web'
     }
+  });
 
-    if (order.customer.toString() !== req.user._id.toString()) {
-      return next(new ErrorResponse("غير مصرح لك بهذا الإجراء", 403));
-    }
+  // 7. Clear cart after successful order creation
+  await Cart.deleteOne({ user: req.user._id });
 
-    order.payment.method = "cash";
-    order.payment.status = "pending";
-    order.status = "confirmed";
-    await order.save();
-
-    successResponse(res, 200, "تم تأكيد الطلب. سيتم الدفع عند الاستلام", {
-      order,
-    });
-  } else if (consultationId) {
-    const consultation = await Consultation.findById(consultationId);
-    if (!consultation) {
-      return next(new ErrorResponse("الاستشارة غير موجودة", 404));
-    }
-
-    if (consultation.patient.toString() !== req.user._id.toString()) {
-      return next(new ErrorResponse("غير مصرح لك بهذا الإجراء", 403));
-    }
-
-    consultation.payment.method = "cash";
-    consultation.payment.status = "pending";
-    consultation.status = "confirmed";
-    await consultation.save();
-
-    successResponse(res, 200, "تم تأكيد الاستشارة. سيتم الدفع نقداً", {
-      consultation,
+  // 8. Update product stock
+  for (const item of orderItems) {
+    await Product.findByIdAndUpdate(item.product, {
+      $inc: { stock: -item.quantity, salesCount: item.quantity }
     });
   }
+
+  successResponse(res, 201, 'تم إنشاء الطلب بنجاح', {
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    totalAmount: total
+  });
 });
 
 // ========================================
-// STRIPE PAYMENT
+// PAYMOB PAYMENT
 // ========================================
 
-// @desc    Create Stripe Payment Intent
-// @route   POST /api/payments/stripe/create-intent
-// @access  Private/Customer
-const createStripePaymentIntent = asyncHandler(async (req, res, next) => {
-  const { orderId, consultationId } = req.body;
-
-  // تحقق من وجود Stripe في المشروع
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return next(new ErrorResponse("Stripe غير مفعل", 400));
+/**
+ * @desc    Create Paymob Payment Token (Card Payment)
+ * @route   POST /api/v1/payments/paymob/create-token
+ * @access  Private/Customer
+ */
+const createPaymobToken = asyncHandler(async (req, res, next) => {
+  // Validate Paymob credentials
+  if (!process.env.PAYMOB_API_KEY || !process.env.PAYMOB_INTEGRATION_ID) {
+    return next(new ErrorResponse('Paymob غير مفعل', 400));
   }
 
-  const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+  console.log('🔍 Creating Paymob payment for user:', req.user._id);
 
-  let amount = 0;
-  let description = "";
-  let metadata = {};
+  // 1. Get user's cart from DB
+  const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
 
-  if (orderId) {
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return next(new ErrorResponse("الطلب غير موجود", 404));
-    }
+  if (!cart || !cart.items || cart.items.length === 0) {
+    return next(new ErrorResponse('السلة فارغة. يرجى إضافة منتجات أولاً', 400));
+  }
 
-    if (order.customer.toString() !== req.user._id.toString()) {
-      return next(new ErrorResponse("غير مصرح لك بهذا الإجراء", 403));
-    }
+  console.log(`✅ Found cart with ${cart.items.length} items`);
 
-    amount = Math.round(order.pricing.total * 100); // تحويل لـ cents
-    description = `Order #${order.orderNumber}`;
-    metadata = { orderId: order._id.toString(), type: "order" };
-  } else if (consultationId) {
-    const consultation = await Consultation.findById(consultationId);
-    if (!consultation) {
-      return next(new ErrorResponse("الاستشارة غير موجودة", 404));
-    }
+  // 2. Calculate total (backend determines price)
+  const totalAmount = calculateCartTotal(cart.items);
+  const amountCents = Math.round(totalAmount * 100); // Convert to cents
 
-    if (consultation.patient.toString() !== req.user._id.toString()) {
-      return next(new ErrorResponse("غير مصرح لك بهذا الإجراء", 403));
-    }
+  console.log(`💰 Total amount: ${totalAmount} EGP (${amountCents} cents)`);
 
-    amount = Math.round(consultation.payment.amount * 100);
-    description = `Consultation #${consultation.consultationNumber}`;
-    metadata = {
-      consultationId: consultation._id.toString(),
-      type: "consultation",
+  if (amountCents <= 0) {
+    return next(new ErrorResponse('خطأ في حساب المجموع', 400));
+  }
+
+  // 3. Get user's shipping address
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return next(new ErrorResponse('المستخدم غير موجود', 404));
+  }
+
+  console.log(`✅ User found: ${user.name}`);
+
+  // ✅ CRITICAL FIX: Create complete address with phone
+  let deliveryAddress;
+  if (user.address && user.address.phone) {
+    deliveryAddress = user.address;
+  } else {
+    console.log('⚠️ No complete address found, creating default with phone');
+    deliveryAddress = {
+      street: user.address?.street || 'Default Street',
+      city: user.address?.city || 'Cairo',
+      state: user.address?.state || 'Cairo',
+      zipCode: user.address?.zipCode || '12345',
+      apartment: user.address?.apartment || 'NA',
+      floor: user.address?.floor || 'NA',
+      building: user.address?.building || 'NA',
+      phone: user.phone || '+201000000000' // ✅ CRITICAL: Include phone
     };
   }
 
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: "egp",
-      description,
-      metadata,
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
-
-    successResponse(res, 200, "Payment Intent تم إنشاؤه بنجاح", {
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-    });
-  } catch (error) {
-    return next(new ErrorResponse(`خطأ في Stripe: ${error.message}`, 500));
-  }
-});
-
-// @desc    Confirm Stripe Payment
-// @route   POST /api/payments/stripe/confirm
-// @access  Private/Customer
-const confirmStripePayment = asyncHandler(async (req, res, next) => {
-  const { paymentIntentId, orderId, consultationId } = req.body;
-
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return next(new ErrorResponse("Stripe غير مفعل", 400));
-  }
-
-  const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
-  try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    if (paymentIntent.status !== "succeeded") {
-      return next(new ErrorResponse("الدفع لم يتم بنجاح", 400));
+  // 4. Snapshot pricing
+  const orderItems = cart.items.map(item => {
+    if (!item.product) {
+      throw new Error(`Product not found for cart item`);
     }
 
-    if (orderId) {
-      const order = await Order.findById(orderId);
-      order.payment.method = "card";
-      order.payment.status = "paid";
-      order.payment.transactionId = paymentIntentId;
-      order.payment.paidAt = new Date();
-      order.status = "confirmed";
-      await order.save();
+    return {
+      product: item.product._id,
+      quantity: item.quantity,
+      price: item.price,
+      name: item.product.name,
+      subtotal: item.price * item.quantity
+    };
+  });
 
-      successResponse(res, 200, "تم الدفع بنجاح", { order });
-    } else if (consultationId) {
-      const consultation = await Consultation.findById(consultationId);
-      consultation.payment.method = "card";
-      consultation.payment.status = "paid";
-      consultation.payment.transactionId = paymentIntentId;
-      consultation.payment.paidAt = new Date();
-      consultation.status = "confirmed";
-      await consultation.save();
+  const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const tax = Math.round(subtotal * 0.14 * 100) / 100;
+  const deliveryFee = 30;
+  const total = Math.round((subtotal + tax + deliveryFee) * 100) / 100;
 
-      successResponse(res, 200, "تم الدفع بنجاح", { consultation });
-    }
-  } catch (error) {
-    return next(new ErrorResponse(`خطأ في تأكيد الدفع: ${error.message}`, 500));
-  }
-});
+  console.log(`📊 Pricing breakdown - Subtotal: ${subtotal}, Tax: ${tax}, Delivery: ${deliveryFee}, Total: ${total}`);
 
-// ========================================
-// PAYMOB PAYMENT (مصر)
-// ========================================
+  // 5. Generate unique orderNumber before creating order
+  const orderNumber = `ORD-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-// @desc    Create Paymob Payment Token
-// @route   POST /api/payments/paymob/create-token
-// @access  Private/Customer
-const createPaymobToken = asyncHandler(async (req, res, next) => {
-  const { orderId, consultationId } = req.body;
+  console.log(`✅ Generated orderNumber: ${orderNumber}`);
 
-  if (!process.env.PAYMOB_API_KEY) {
-    return next(new ErrorResponse("Paymob غير مفعل", 400));
-  }
+  // Create order FIRST (before Paymob) with retry logic for duplicate orderNumber
+  let order;
+  let attempts = 0;
+  const maxAttempts = 3;
 
-  const axios = require("axios");
-
-  let amount = 0;
-  let orderRef = "";
-
-  if (orderId) {
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return next(new ErrorResponse("الطلب غير موجود", 404));
-    }
-    amount = order.pricing.total * 100; // بالقرش
-    orderRef = order.orderNumber;
-  } else if (consultationId) {
-    const consultation = await Consultation.findById(consultationId);
-    if (!consultation) {
-      return next(new ErrorResponse("الاستشارة غير موجودة", 404));
-    }
-    amount = consultation.payment.amount * 100;
-    orderRef = consultation.consultationNumber;
-  }
-
-  try {
-    // Step 1: Authentication
-    const authResponse = await axios.post(
-      "https://accept.paymob.com/api/auth/tokens",
-      {
-        api_key: process.env.PAYMOB_API_KEY,
-      }
-    );
-
-    const authToken = authResponse.data.token;
-
-    // Step 2: Order Registration
-    const orderResponse = await axios.post(
-      "https://accept.paymob.com/api/ecommerce/orders",
-      {
-        auth_token: authToken,
-        delivery_needed: false,
-        amount_cents: amount,
-        currency: "EGP",
-        merchant_order_id: orderRef,
-      }
-    );
-
-    const paymobOrderId = orderResponse.data.id;
-
-    // Step 3: Payment Key
-    const paymentKeyResponse = await axios.post(
-      "https://accept.paymob.com/api/acceptance/payment_keys",
-      {
-        auth_token: authToken,
-        amount_cents: amount,
-        expiration: 3600,
-        order_id: paymobOrderId,
-        billing_data: {
-          apartment: "NA",
-          email: req.user.email,
-          floor: "NA",
-          first_name: req.user.name,
-          street: "NA",
-          building: "NA",
-          phone_number: req.user.phone,
-          shipping_method: "NA",
-          postal_code: "NA",
-          city: "NA",
-          country: "EG",
-          last_name: "NA",
-          state: "NA",
+  while (attempts < maxAttempts) {
+    try {
+      order = await Order.create({
+        customer: req.user._id,
+        orderNumber,
+        items: orderItems,
+        pricing: {
+          subtotal,
+          deliveryFee,
+          tax,
+          total
         },
-        currency: "EGP",
-        integration_id: process.env.PAYMOB_INTEGRATION_ID,
+        deliveryAddress, // ✅ This now includes phone
+        payment: {
+          method: 'card',
+          status: 'pending'
+        },
+        status: 'pending',
+        metadata: {
+          source: 'web'
+        }
+      });
+      console.log(`✅ Order created successfully: ${order._id} with orderNumber: ${order.orderNumber}`);
+      break; // Success, exit loop
+    } catch (error) {
+      if (error.code === 11000 && error.message.includes('orderNumber')) {
+        console.warn(`⚠️ Duplicate orderNumber detected, retrying... (attempt ${attempts + 1})`);
+        attempts++;
+        if (attempts >= maxAttempts) {
+          return next(new ErrorResponse('فشل في إنشاء الطلب بسبب تعارض في رقم الطلب', 500));
+        }
+      } else {
+        // Other errors, re-throw
+        return next(error);
       }
+    }
+  }
+
+  const merchantOrderId = order._id.toString();
+
+  // 6. Prepare billing data with defaults
+  const billingData = {
+    first_name: user.name?.split(' ')[0] || 'User',
+    last_name: user.name?.split(' ')[1] || 'NA',
+    email: user.email || 'noemail@example.com',
+    phone_number: deliveryAddress.phone || user.phone || '+201000000000', // ✅ Use from address or user
+    apartment: deliveryAddress.apartment || 'NA',
+    floor: deliveryAddress.floor || 'NA',
+    street: deliveryAddress.street || 'NA',
+    building: deliveryAddress.building || 'NA',
+    shipping_method: 'NA',
+    postal_code: deliveryAddress.zipCode || 'NA',
+    city: deliveryAddress.city || 'Cairo',
+    country: 'EG',
+    state: deliveryAddress.state || 'NA'
+  };
+
+  console.log(`📋 Billing data prepared for: ${billingData.first_name} ${billingData.last_name}`);
+
+  try {
+    console.log('🔐 Getting Paymob auth token...');
+    // 7. Get Paymob auth token
+    const authToken = await getPaymobAuthToken();
+    console.log('✅ Auth token received');
+
+    console.log('📦 Creating Paymob order...');
+    // 8. Create Paymob order
+    const paymobOrder = await createPaymobOrder(authToken, amountCents, merchantOrderId);
+    console.log(`✅ Paymob order created: ${paymobOrder.id}`);
+
+    console.log('🔑 Creating payment key...');
+    // 9. Create payment key
+    const paymentKey = await createPaymobPaymentKey(
+      authToken,
+      paymobOrder.id,
+      amountCents,
+      billingData
     );
+    console.log('✅ Payment key created');
 
-    const paymentToken = paymentKeyResponse.data.token;
+    // 10. Update product stock
+    for (const item of orderItems) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: -item.quantity }
+      });
+    }
+    console.log('✅ Product stock updated');
 
-    successResponse(res, 200, "Payment Token تم إنشاؤه بنجاح", {
-      paymentToken,
-      iframeUrl: `https://accept.paymob.com/api/acceptance/iframes/${process.env.PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`,
+    // 11. Clear cart
+    await Cart.deleteOne({ user: req.user._id });
+    console.log('✅ Cart cleared');
+
+    const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${process.env.PAYMOB_IFRAME_ID}?payment_token=${paymentKey.token}`;
+    console.log('🎉 Payment token created successfully');
+
+    successResponse(res, 200, 'تم إنشاء رابط الدفع بنجاح', {
+      success: true,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      iframeUrl,
+      paymentToken: paymentKey.token
     });
+
   } catch (error) {
+    console.error('❌ Paymob error:', error);
+
+    // If Paymob fails, delete the order and restore stock
+    console.log('🔄 Rolling back order...');
+    await Order.findByIdAndDelete(order._id);
+
+    for (const item of orderItems) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: item.quantity }
+      });
+    }
+    console.log('✅ Rollback complete');
+
     return next(new ErrorResponse(`خطأ في Paymob: ${error.message}`, 500));
   }
 });
 
-// @desc    Paymob Callback Handler
-// @route   POST /api/payments/paymob/callback
-// @access  Public
+/**
+ * @desc    Paymob Callback Handler
+ * @route   POST /api/v1/payments/paymob/callback
+ * @access  Public
+ */
 const paymobCallback = asyncHandler(async (req, res, next) => {
-  const { obj } = req.body;
+  try {
+    const data = req.body.obj;
+    const receivedHmac = req.query.hmac;
 
-  // التحقق من HMAC
-  const hmac = crypto
-    .createHmac("sha512", process.env.PAYMOB_HMAC_SECRET)
-    .update(JSON.stringify(obj))
-    .digest("hex");
+    // ✅ CRITICAL: Verify HMAC signature
+    // Must match exact order from Paymob docs
+    const concatenated = [
+      data.amount_cents,
+      data.created_at,
+      data.currency,
+      data.error_occured,
+      data.has_parent_transaction,
+      data.id,
+      data.integration_id,
+      data.is_3d_secure,
+      data.is_auth,
+      data.is_capture,
+      data.is_refunded,
+      data.is_standalone_payment,
+      data.is_voided,
+      data.order.id,
+      data.owner,
+      data.pending,
+      data.source_data.pan,
+      data.source_data.sub_type,
+      data.source_data.type,
+      data.success
+    ].join("");
 
-  if (hmac !== req.query.hmac) {
-    return next(new ErrorResponse("Invalid HMAC", 400));
-  }
+    const calculatedHmac = crypto
+      .createHmac("sha512", process.env.PAYMOB_HMAC_SECRET)
+      .update(concatenated)
+      .digest("hex");
 
-  if (obj.success === true) {
-    const orderRef = obj.order.merchant_order_id;
+    if (calculatedHmac !== receivedHmac) {
+      console.error('❌ Invalid HMAC signature');
+      return res.status(401).json({ message: "Invalid HMAC" });
+    }
 
-    // تحديث الطلب أو الاستشارة
-    const order = await Order.findOne({ orderNumber: orderRef });
-    if (order) {
-      order.payment.method = "card";
+    // ✅ HMAC verified - process payment
+    const orderId = data.order.merchant_order_id;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      console.error(`Order not found: ${orderId}`);
+      return res.sendStatus(404);
+    }
+
+    // ✅ Duplicate webhook protection
+    if (order.payment.status === "paid") {
+      console.log(`⚠️ Duplicate webhook for order: ${orderId}`);
+      return res.sendStatus(200);
+    }
+
+    // ✅ Process payment result
+    if (data.success === true) {
       order.payment.status = "paid";
-      order.payment.transactionId = obj.id.toString();
+      order.payment.transactionId = data.id.toString();
       order.payment.paidAt = new Date();
       order.status = "confirmed";
-      await order.save();
+
+      console.log(`✅ Payment successful for order: ${orderId}`);
+    } else {
+      order.payment.status = "failed";
+      order.status = "cancelled";
+
+      // Restore stock on failed payment
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity, salesCount: -item.quantity }
+        });
+      }
+
+      console.log(`❌ Payment failed for order: ${orderId}`);
     }
 
-    const consultation = await Consultation.findOne({
-      consultationNumber: orderRef,
-    });
-    if (consultation) {
-      consultation.payment.method = "card";
-      consultation.payment.status = "paid";
-      consultation.payment.transactionId = obj.id.toString();
-      consultation.payment.paidAt = new Date();
-      consultation.status = "confirmed";
-      await consultation.save();
-    }
-
-    res.status(200).json({ success: true });
-  } else {
-    res.status(400).json({ success: false, message: "Payment failed" });
-  }
-});
-
-// ========================================
-// WALLET PAYMENT (محفظة داخلية)
-// ========================================
-
-// @desc    Pay with Wallet
-// @route   POST /api/payments/wallet
-// @access  Private/Customer
-const payWithWallet = asyncHandler(async (req, res, next) => {
-  const { orderId, consultationId } = req.body;
-
-  // جلب رصيد المحفظة (يحتاج Wallet Model)
-  const user = await User.findById(req.user._id);
-
-  let amount = 0;
-
-  if (orderId) {
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return next(new ErrorResponse("الطلب غير موجود", 404));
-    }
-    amount = order.pricing.total;
-
-    if (user.walletBalance < amount) {
-      return next(new ErrorResponse("رصيد المحفظة غير كافي", 400));
-    }
-
-    user.walletBalance -= amount;
-    await user.save();
-
-    order.payment.method = "wallet";
-    order.payment.status = "paid";
-    order.payment.paidAt = new Date();
-    order.status = "confirmed";
     await order.save();
+    res.sendStatus(200);
 
-    successResponse(res, 200, "تم الدفع من المحفظة بنجاح", {
-      order,
-      walletBalance: user.walletBalance,
-    });
-  } else if (consultationId) {
-    const consultation = await Consultation.findById(consultationId);
-    if (!consultation) {
-      return next(new ErrorResponse("الاستشارة غير موجودة", 404));
-    }
-    amount = consultation.payment.amount;
-
-    if (user.walletBalance < amount) {
-      return next(new ErrorResponse("رصيد المحفظة غير كافي", 400));
-    }
-
-    user.walletBalance -= amount;
-    await user.save();
-
-    consultation.payment.method = "wallet";
-    consultation.payment.status = "paid";
-    consultation.payment.paidAt = new Date();
-    consultation.status = "confirmed";
-    await consultation.save();
-
-    successResponse(res, 200, "تم الدفع من المحفظة بنجاح", {
-      consultation,
-      walletBalance: user.walletBalance,
-    });
+  } catch (err) {
+    console.error('Callback error:', err);
+    res.sendStatus(500);
   }
 });
 
-// @desc    Get Payment Methods
-// @route   GET /api/payments/methods
-// @access  Private
+/**
+ * @desc    Get Payment Status
+ * @route   GET /api/v1/payments/status/:orderId
+ * @access  Private
+ */
+const getPaymentStatus = asyncHandler(async (req, res, next) => {
+  const { orderId } = req.params;
+
+  // Validate orderId format
+  if (!orderId || orderId.length !== 24) {
+    return next(new ErrorResponse('معرف الطلب غير صحيح', 400));
+  }
+
+  const order = await Order.findById(orderId)
+    .select('payment.status payment.method payment.transactionId payment.paidAt pricing.total createdAt');
+
+  if (!order) {
+    return next(new ErrorResponse('الطلب غير موجود', 404));
+  }
+
+  // Check authorization
+  const isCustomer = order.customer && order.customer.toString() === req.user._id.toString();
+  const isPharmacist = req.user.role === 'pharmacist';
+  const isAdmin = req.user.role === 'admin';
+
+  if (!isCustomer && !isPharmacist && !isAdmin) {
+    return next(new ErrorResponse('غير مصرح لك بالوصول لهذا الطلب', 403));
+  }
+
+  successResponse(res, 200, 'حالة الدفع', {
+    orderId: order._id,
+    paymentStatus: order.payment.status, // 'pending', 'paid', 'failed'
+    method: order.payment.method,
+    transactionId: order.payment.transactionId || null,
+    paidAt: order.payment.paidAt || null,
+    totalAmount: order.pricing.total,
+    createdAt: order.createdAt
+  });
+});
+
+// ========================================
+// GET PAYMENT METHODS
+// ========================================
+
+/**
+ * @desc    Get Available Payment Methods
+ * @route   GET /api/v1/payments/methods
+ * @access  Private
+ */
 const getPaymentMethods = asyncHandler(async (req, res, next) => {
   const methods = [
     {
-      id: "cash",
-      name: "الدفع عند الاستلام",
-      nameEn: "Cash on Delivery",
-      icon: "💵",
+      id: 'cash',
+      name: 'الدفع عند الاستلام',
+      nameEn: 'Cash on Delivery',
+      icon: '💵',
       enabled: true,
-      fee: 0,
+      fee: 0
     },
     {
-      id: "card",
-      name: "بطاقة ائتمان/خصم",
-      nameEn: "Credit/Debit Card",
-      icon: "💳",
-      enabled: !!process.env.STRIPE_SECRET_KEY || !!process.env.PAYMOB_API_KEY,
+      id: 'card',
+      name: 'بطاقة ائتمان/خصم',
+      nameEn: 'Credit/Debit Card',
+      icon: '💳',
+      enabled: !!(process.env.PAYMOB_API_KEY && process.env.PAYMOB_INTEGRATION_ID),
       fee: 0,
-      providers: [],
-    },
-    {
-      id: "wallet",
-      name: "المحفظة",
-      nameEn: "Wallet",
-      icon: "👛",
-      enabled: true,
-      fee: 0,
-    },
+      provider: 'paymob'
+    }
   ];
 
-  if (process.env.STRIPE_SECRET_KEY) {
-    methods[1].providers.push("stripe");
-  }
-
-  if (process.env.PAYMOB_API_KEY) {
-    methods[1].providers.push("paymob");
-  }
-
-  successResponse(res, 200, "طرق الدفع المتاحة", { methods });
-});
-
-// @desc    Get Payment History
-// @route   GET /api/payments/history
-// @access  Private
-const getPaymentHistory = asyncHandler(async (req, res, next) => {
-  const orders = await Order.find({
-    customer: req.user._id,
-    "payment.status": "paid",
-  })
-    .select("orderNumber payment pricing createdAt")
-    .sort("-createdAt");
-
-  const consultations = await Consultation.find({
-    patient: req.user._id,
-    "payment.status": "paid",
-  })
-    .select("consultationNumber payment createdAt")
-    .sort("-createdAt");
-
-  const payments = [
-    ...orders.map((o) => ({
-      type: "order",
-      number: o.orderNumber,
-      amount: o.pricing.total,
-      method: o.payment.method,
-      date: o.payment.paidAt || o.createdAt,
-      transactionId: o.payment.transactionId,
-    })),
-    ...consultations.map((c) => ({
-      type: "consultation",
-      number: c.consultationNumber,
-      amount: c.payment.amount,
-      method: c.payment.method,
-      date: c.payment.paidAt || c.createdAt,
-      transactionId: c.payment.transactionId,
-    })),
-  ].sort((a, b) => b.date - a.date);
-
-  successResponse(res, 200, "سجل المدفوعات", {
-    payments,
-    count: payments.length,
-  });
+  successResponse(res, 200, 'طرق الدفع المتاحة', { methods });
 });
 
 module.exports = {
   processCashPayment,
-  createStripePaymentIntent,
-  confirmStripePayment,
   createPaymobToken,
   paymobCallback,
-  payWithWallet,
-  getPaymentMethods,
-  getPaymentHistory,
+  getPaymentStatus,
+  getPaymentMethods
 };
