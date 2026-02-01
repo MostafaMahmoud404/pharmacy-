@@ -97,8 +97,8 @@
         <div class="filter-group">
           <label>Search Doctor</label>
           <div class="search-box">
-            <input type="text" placeholder="Doctor name or specialty..."
-              (input)="onSearch($any($event.target).value)" class="search-input" />
+            <input type="text" placeholder="Doctor name or specialty..." (input)="onSearch($any($event.target).value)"
+              class="search-input" />
             <span class="search-icon">🔍</span>
           </div>
         </div>
@@ -137,8 +137,8 @@
         <!-- Price Range Filter -->
         <div class="filter-group">
           <label>💰 Max Price (EGP)</label>
-          <input type="number" [(ngModel)]="maxPrice" (change)="applyFilters()"
-            placeholder="Max price..." class="search-input" min="0" />
+          <input type="number" [(ngModel)]="maxPrice" (change)="applyFilters()" placeholder="Max price..."
+            class="search-input" min="0" />
         </div>
 
         <!-- Availability Filter -->
@@ -187,15 +187,14 @@
 
       <!-- Doctors Grid -->
       <div *ngIf="!isLoading && !error && filteredDoctors.length > 0" class="doctors-grid">
-        <div *ngFor="let doctor of filteredDoctors" class="doctor-card"
-          [attr.data-available]="doctor.isAvailable">
+        <div *ngFor="let doctor of filteredDoctors" class="doctor-card" [attr.data-available]="doctor.isAvailable">
           <!-- Image Section -->
           <div class="card-image">
             <div class="image-content">
-              <img *ngIf="doctor.user?.profileImage" [src]="doctor.user.profileImage"
-                [alt]="doctor.user.name" class="doctor-photo" />
-              <div *ngIf="!doctor.user?.profileImage" class="doctor-placeholder">
-                {{ getInitials(doctor.user?.name) }}
+              <img *ngIf="doctor.user.profileImage" [src]="doctor.user.profileImage" [alt]="doctor.user.name"
+                class="doctor-photo" />
+              <div *ngIf="!doctor.user.profileImage" class="doctor-placeholder">
+                {{ getInitials(doctor.user.name) }}
               </div>
             </div>
 
@@ -207,8 +206,8 @@
             </div>
 
             <!-- Favorite Button -->
-            <button class="favorite-btn" (click)="toggleFavorite(doctor._id)"
-              [class.active]="isFavorite(doctor._id)" title="Add to favorites">
+            <button class="favorite-btn" (click)="toggleFavorite(doctor._id)" [class.active]="isFavorite(doctor._id)"
+              title="Add to favorites">
               ♡
             </button>
           </div>
@@ -216,7 +215,7 @@
           <!-- Card Content -->
           <div class="card-content">
             <!-- Doctor Name -->
-            <h3 class="doctor-name">{{ doctor.user?.name }}</h3>
+            <h3 class="doctor-name">{{ doctor.user.name }}</h3>
             <p class="doctor-specialty">{{ doctor.specialtyArabic || doctor.specialty }}</p>
 
             <!-- Rating -->
@@ -245,8 +244,8 @@
 
               <div class="info-item">
                 <span class="icon">📞</span>
-                <a [href]="'tel:' + doctor.user?.phone" class="phone-link">
-                  {{ doctor.user?.phone || 'N/A' }}
+                <a [href]="'tel:' + doctor.user.phone" class="phone-link">
+                  {{ doctor.user.phone || 'N/A' }}
                 </a>
               </div>
             </div>
@@ -264,8 +263,7 @@
             </div>
 
             <!-- Action Button -->
-            <button class="book-btn" (click)="bookConsultation(doctor._id)"
-              [disabled]="!doctor.isAvailable">
+            <button class="book-btn" (click)="bookConsultation(doctor._id)" [disabled]="!doctor.isAvailable">
               {{ doctor.isAvailable ? 'Book Now →' : 'Currently Unavailable' }}
             </button>
           </div>

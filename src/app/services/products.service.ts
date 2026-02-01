@@ -65,9 +65,44 @@ export interface ProductResponse {
 })
 export class ProductService {
   private apiUrl = `${environment.apiUrl}/products`;
+  private backendUrl = 'http://localhost:5000'; // ✅ Base URL للصور
 
   constructor(private http: HttpClient) {
     console.log('Product Service - API URL:', this.apiUrl);
+  }
+
+  // ✅ إضافة: Fix image URLs
+  private fixImageUrls(product: Product): Product {
+    if (!product) return product;
+
+    // Fix images array
+    if (product.images && Array.isArray(product.images)) {
+      product.images = product.images.map(img => {
+        if (img.url && !img.url.startsWith('http')) {
+          return {
+            ...img,
+            url: `${this.backendUrl}/${img.url}`
+          };
+        }
+        return img;
+      });
+    }
+
+    // Set placeholder if no images
+    if (!product.images || product.images.length === 0) {
+      product.images = [{
+        url: 'assets/placeholder.svg',
+        publicId: '',
+        isMain: true
+      }];
+    }
+
+    return product;
+  }
+
+  // ✅ إضافة: Fix multiple products
+  private fixProductsUrls(products: Product[]): Product[] {
+    return products.map(p => this.fixImageUrls(p));
   }
 
   private handleError(error: any) {
@@ -90,6 +125,12 @@ export class ProductService {
     console.log('Creating product at:', this.apiUrl);
     return this.http.post<ProductResponse>(this.apiUrl, formData)
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -110,6 +151,12 @@ export class ProductService {
 
     return this.http.get<ProductResponse>(this.apiUrl, { params })
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -120,6 +167,12 @@ export class ProductService {
   getProductById(id: string): Observable<ProductResponse> {
     return this.http.get<ProductResponse>(`${this.apiUrl}/${id}`)
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -131,6 +184,12 @@ export class ProductService {
     console.log('Updating product:', id);
     return this.http.put<ProductResponse>(`${this.apiUrl}/${id}`, formData)
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -151,6 +210,12 @@ export class ProductService {
   uploadProductImages(id: string, formData: FormData): Observable<ProductResponse> {
     return this.http.post<ProductResponse>(`${this.apiUrl}/${id}/images`, formData)
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -161,6 +226,12 @@ export class ProductService {
   deleteProductImage(productId: string, imageId: string): Observable<ProductResponse> {
     return this.http.delete<ProductResponse>(`${this.apiUrl}/${productId}/images/${imageId}`)
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -171,6 +242,12 @@ export class ProductService {
   setMainImage(productId: string, imageId: string): Observable<ProductResponse> {
     return this.http.put<ProductResponse>(`${this.apiUrl}/${productId}/images/${imageId}/main`, {})
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -181,6 +258,12 @@ export class ProductService {
   updateStock(id: string, quantity: number, operation: 'add' | 'subtract'): Observable<ProductResponse> {
     return this.http.put<ProductResponse>(`${this.apiUrl}/${id}/stock`, { quantity, operation })
       .pipe(
+        map(response => {
+          if (response.data?.product) {
+            response.data.product = this.fixImageUrls(response.data.product);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -201,6 +284,12 @@ export class ProductService {
 
     return this.http.get<ProductResponse>(`${this.apiUrl}/category/${category}`, { params })
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -219,6 +308,12 @@ export class ProductService {
 
     return this.http.get<ProductResponse>(`${this.apiUrl}/search`, { params })
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -229,6 +324,12 @@ export class ProductService {
   getFeaturedProducts(): Observable<ProductResponse> {
     return this.http.get<ProductResponse>(`${this.apiUrl}/featured`)
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -239,6 +340,12 @@ export class ProductService {
   getBestSellingProducts(): Observable<ProductResponse> {
     return this.http.get<ProductResponse>(`${this.apiUrl}/best-selling`)
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -249,6 +356,12 @@ export class ProductService {
   getLowStockProducts(): Observable<ProductResponse> {
     return this.http.get<ProductResponse>(`${this.apiUrl}/low-stock`)
       .pipe(
+        map(response => {
+          if (response.data?.products) {
+            response.data.products = this.fixProductsUrls(response.data.products);
+          }
+          return response;
+        }),
         catchError(error => this.handleError(error))
       );
   }
@@ -261,5 +374,14 @@ export class ProductService {
       .pipe(
         catchError(error => this.handleError(error))
       );
+  }
+
+  // ✅ إضافة: Helper method للحصول على الصورة الرئيسية
+  getMainImage(product: Product): string {
+    if (product.images && product.images.length > 0) {
+      const mainImage = product.images.find(img => img.isMain);
+      return mainImage ? mainImage.url : product.images[0].url;
+    }
+    return 'assets/placeholder.svg';
   }
 }

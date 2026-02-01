@@ -2,6 +2,8 @@
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 export interface CartItem {
   _id: string;
@@ -34,8 +36,16 @@ export class CartService {
   private cartSubject = new BehaviorSubject<CartItem[]>([]);
   public cart$ = this.cartSubject.asObservable();
 
-  constructor() {
+  constructor(private http: HttpClient) {
     this.loadCartFromStorage();
+  }
+
+  /**
+   * Sync local cart to backend
+   */
+  syncToBackend(): Observable<any> {
+    const items = this.getCartItems();
+    return this.http.post(`${environment.apiUrl}/cart/sync`, { items });
   }
 
   /**

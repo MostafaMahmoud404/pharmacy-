@@ -23,7 +23,7 @@ export class CartComponent implements OnInit, OnDestroy {
   constructor(
     private cartService: CartService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadCart();
@@ -154,16 +154,28 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * الحصول على صورة المنتج
+   * الحصول على صورة المنتج - FIXED VERSION ✅
    */
   getProductImage(item: CartItem): string {
-    return item.image || 'assets/images/placeholder-product.png';
+    // لو مفيش صورة خالص، استخدم placeholder
+    if (!item.image) {
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD4KPC9zdmc+';
+    }
+
+    // لو الصورة مش فيها http يبقى ضيفله الـ backend URL
+    if (!item.image.startsWith('http')) {
+      return `http://localhost:5000/${item.image}`;
+    }
+
+    return item.image;
   }
 
   /**
    * معالجة خطأ تحميل الصورة
    */
   onImageError(event: any): void {
-    event.target.src = 'assets/images/placeholder-product.png';
+    event.target.onerror = null; // منع infinite loop
+    event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD4KPC9zdmc+';
   }
+
 }

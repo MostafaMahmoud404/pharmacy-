@@ -1,6 +1,6 @@
 <!-- src/app/components/checkout/checkout.component.html -->
 
-<div class="checkout-container" *ngIf="!orderPlaced">
+<div class="checkout-container" *ngIf="!orderPlaced && !showIframe">
   <!-- Header -->
   <div class="checkout-header">
     <button class="btn-back" (click)="backToCart()">
@@ -194,13 +194,13 @@
 
         <div class="payment-methods">
           <div class="payment-method" *ngFor="let method of paymentMethods"
-            [class.selected]="selectedPaymentMethod === method.id" [class.disabled]="method.id !== 'cash'"
+            [class.selected]="selectedPaymentMethod === method.id" [class.disabled]="method.id === 'wallet'"
             (click)="selectPaymentMethod(method.id)">
             <div class="method-icon">{{ method.icon }}</div>
             <div class="method-info">
               <h3 class="method-name">
                 {{ method.name }}
-                <span class="coming-soon" *ngIf="method.id !== 'cash'">Coming Soon</span>
+                <span class="coming-soon" *ngIf="method.id === 'wallet'">Coming Soon</span>
               </h3>
               <p class="method-description">{{ method.description }}</p>
             </div>
@@ -326,6 +326,68 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Payment Iframe Section -->
+<div class="payment-iframe-container" *ngIf="showIframe">
+  <div class="iframe-header">
+    <h2 class="iframe-title">
+      <i class="fas fa-lock"></i>
+      Secure Payment Gateway
+    </h2>
+    <p class="iframe-subtitle">Please complete your payment through Paymob</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="payment-error" *ngIf="paymentError">
+    <i class="fas fa-exclamation-circle"></i>
+    <span>{{ paymentError }}</span>
+  </div>
+
+  <!-- Loading State -->
+  <div class="iframe-loading" *ngIf="isPaying">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading payment gateway...</p>
+  </div>
+
+  <!-- Iframe -->
+  <div class="iframe-wrapper" *ngIf="!isPaying && iframeUrl">
+    <iframe [src]="iframeUrl" width="100%" height="700" frameborder="0" allowfullscreen>
+    </iframe>
+  </div>
+
+  <!-- Polling Status -->
+  <div class="polling-status" *ngIf="isPolling && !paymentError">
+    <i class="fas fa-circle-notch fa-spin"></i>
+    <p>Verifying your payment...</p>
+    <small>
+      {{ paymentStatus?.paymentStatus === 'pending' ? 'Waiting for payment confirmation...' : '' }}
+      {{ paymentStatus?.paymentStatus === 'paid' ? 'Payment confirmed successfully!' : '' }}
+      {{ paymentStatus?.paymentStatus === 'failed' ? 'Payment failed!' : '' }}
+    </small>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="iframe-actions">
+    <button class="btn-secondary" (click)="cancelPayment()" *ngIf="!isPolling">
+      <i class="fas fa-times"></i>
+      Cancel Payment
+    </button>
+
+    <button class="btn-primary" (click)="retryPayment()" *ngIf="paymentError && !isPolling">
+      <i class="fas fa-redo"></i>
+      Retry Payment
+    </button>
+  </div>
+
+  <!-- Info Box -->
+  <div class="payment-info">
+    <p class="info-text">
+      <i class="fas fa-info-circle"></i>
+      <strong>Note:</strong> After completing your payment in the iframe, please do not close this window.
+      We are verifying your payment automatically.
+    </p>
   </div>
 </div>
 

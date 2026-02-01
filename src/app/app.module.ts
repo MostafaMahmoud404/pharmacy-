@@ -36,6 +36,7 @@ import { UserService } from './services/user.service';
 import { ProductService } from './services/products.service';
 import { AdminService } from './services/admin.service';
 import { ConsultationService } from './services/consultation.service';
+import { SocketService } from './services/socket.service'; // ✅ Added
 
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
@@ -96,6 +97,7 @@ import { CheckoutComponent } from './components/checkout/checkout.component';
     ProductService,
     AdminService,
     ConsultationService,
+    SocketService, // ✅ Added
     AuthGuard,
     PharmacistGuard,
     CustomerGuard,
